@@ -1,0 +1,17 @@
+{
+  "name": "iansltx/raphple",
+  "description": "PHP Raffler with Twilio",
+  "minimum-stability": "dev",
+  "license": "BSD-2-Clause",
+  "authors": [
+    {
+      "name": "Ian Littman",
+      "email": "iansltx@gmail.com"
+    }
+  ],
+  "require": {
+    "slim/slim": "2.*",
+    "twilio/sdk": "dev-master",
+    "aura/sql":"2.*"
+  }
+}
