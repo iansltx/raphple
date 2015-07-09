@@ -1,12 +1,31 @@
 <?php
 
+use Slim\Http\Request;
+use Slim\Http\Response;
+
 require __DIR__ . '/../vendor/autoload.php';
 
-$app = new \Slim\Slim(['templates.path' => '../templates']);
+/** SERVICES **/
 
-$app->get('/', function() use ($app) {
-    $app->render('home.php');
-});
+class View
+{
+    protected $templateDir;
+
+    public function __construct($template_dir) {
+        $this->templateDir = $template_dir;
+    }
+
+    public function render(Response $res, $filename, $data = []) {
+        extract($data, EXTR_SKIP);
+        ob_start();
+        require $this->templateDir . '/' . $filename;
+        return $res->write(ob_get_clean());
+    }
+
+    public function renderNotFound(Response $res) {
+        return $this->render($res->withStatus(404), 'not_found.php');
+    }
+}
 
 class RaffleService {
     protected $db;
@@ -88,7 +107,7 @@ class RaffleService {
         if (!$this->raffleExists($code))
             return false;
         if ($this->db->fetchValue('SELECT COUNT(*) FROM entrant WHERE raffle_id = ? && phone_number = ?',
-                [$code, $phone_number]))
+            [$code, $phone_number]))
             return false;
 
         $this->db->perform('INSERT INTO entrant (raffle_id, phone_number) VALUES (?, ?)', [$code, $phone_number]);
@@ -100,19 +119,80 @@ class RaffleService {
     }
 }
 
-$rs = new RaffleService(
+class Auth
+{
+    protected $rs;
+
+    public function __construct(RaffleService $rs) {
+        $this->rs = $rs;
+    }
+
+    public function isAuthorized(Request $req, $id) {
+        $sid = $this->rs->getSid($id);
+        return $sid === $req->getCookieParams()['sid' . $id] || $sid === $req->getQueryParams()['sid'];
+    }
+}
+
+$container = new \Slim\Container();
+
+$container['view'] = function() {return new View(__DIR__ . '/../templates');};
+$container['raffleService'] = function() {return new RaffleService(
     new \Aura\Sql\ExtendedPdo('mysql:host=127.0.0.1;dbname=raphple', 'raphple', 'raphple'),
     new Services_Twilio($_SERVER['TWILIO_SID'], $_SERVER['TWILIO_TOKEN']), $_SERVER['TWILIO_NUMBER']
-);
+);};
+$container['auth'] = function($c) {return new Auth($c->get('raffleService'));};
 
-$isAuthorized = function($id) use ($app, $rs) {
-    $sid = $rs->getSid($id);
-    return $sid === $app->getCookie('sid' . $id) || $sid === $app->request()->get('sid');
-};
+// Slim3 doesn't currently do response cookies
+$container['addCookieToResponse'] = $container->protect(function(Response $res, $name, $properties) {
+    if (is_string($properties)) {
+        $properties = ['value' => $properties];
+    }
 
-$app->post('/', function() use ($app, $rs) {
-    $items = trim($app->request()->post('raffle_items'));
-    $name = trim($app->request()->post('raffle_name'));
+    $result = urlencode($name) . '=' . urlencode($properties['value']);
+
+    if (isset($properties['domain'])) {
+        $result .= '; domain=' . $properties['domain'];
+    }
+
+    if (isset($properties['path'])) {
+        $result .= '; path=' . $properties['path'];
+    }
+
+    if (isset($properties['expires'])) {
+        if (is_string($properties['expires'])) {
+            $timestamp = strtotime($properties['expires']);
+        } else {
+            $timestamp = (int)$properties['expires'];
+        }
+        if ($timestamp !== 0) {
+            $result .= '; expires=' . gmdate('D, d-M-Y H:i:s e', $timestamp);
+        }
+    }
+
+    if (isset($properties['secure']) && $properties['secure']) {
+        $result .= '; secure';
+    }
+
+    if (isset($properties['httponly']) && $properties['httponly']) {
+        $result .= '; HttpOnly';
+    }
+
+    return $res->withAddedHeader('Set-Cookie', $result);
+});
+
+$app = new \Slim\App($container);
+
+/** ROUTES **/
+
+$app->get('/', function(Request $req, Response $res) {
+    return $this->view->render($res, 'home.php');
+});
+
+$app->post('/', function(Request $req, Response $res) {
+    $body = $req->getParsedBody();
+
+    $items = trim($body['raffle_items']);
+    $name = trim($body['raffle_name']);
 
     $errors = [];
 
@@ -121,78 +201,77 @@ $app->post('/', function() use ($app, $rs) {
     if (!strlen($name))
         $errors['raffle_items'] = true;
 
-    if (count($errors)) {
-        $app->render('home.php', ['raffleItems' => $items, 'raffleName' => $name, 'errors' => $errors]);
-        return;
-    }
+    if (count($errors))
+        return $this->view->render($res, 'home.php',
+            ['raffleItems' => $items, 'raffleName' => $name, 'errors' => $errors]);
 
-    $id = $rs->create($name, explode("\n", trim($items)));
+    $id = $this->raffleService->create($name, explode("\n", trim($items)));
 
-    $app->setCookie('sid' . $id, $rs->getSid($id));
-    $app->redirect('/' . $id);
+    return $this->addCookieToResponse
+        ->__invoke($res, 'sid' . $id, $this->raffleService->getSid($id))->withRedirect('/' . $id);
 });
 
-$app->get('/:id', function($id) use ($app, $rs, $isAuthorized) {
-    if (!$rs->raffleExists($id)) {
-        $app->response()->setStatus(404);
-        $app->render('not_found.php');
-        return;
-    }
+$app->get('/{id}', function(Request $req, Response $res, array $args) {
+    $id = $args['id'];
+    /** @var RaffleService $rs */
+    $rs = $this->raffleService;
 
-    if ($app->request()->get('show') === 'entrants') {
+    if (!$rs->raffleExists($id))
+        return $this->view->renderNotFound($res);
+
+    if ($req->getQueryParams()['show'] === 'entrants') {
         $output = ['is_complete' => $rs->isComplete($id)];
 
         $numbers = $rs->getEntrantPhoneNumbers($id);
         $output['count'] = count($numbers);
 
-        if ($isAuthorized($id))
+        if ($this->auth->isAuthorized($req, $id))
             $output['numbers'] = array_map(function($number) {return 'xxx-xxx-' . substr($number, -4);}, $numbers);
 
-        echo json_encode($output);
-        return;
+        return $res->withJson($output);
     }
 
-    if ($rs->isComplete($id)) {
-        $app->render('finished.php', ['raffleName' => $rs->getName($id)]);
-        return;
-    }
+    if ($rs->isComplete($id))
+        return $this->view->render($res, 'finished.php', ['raffleName' => $rs->getName($id)]);
 
-    $app->render('waiting.php', [
+    return $this->view->render($res, 'waiting.php', [
         'phoneNumber' => $rs->getPhoneNumber($id),
         'code' => $rs->getCode($id),
-        'entrantNumbers' => $isAuthorized($id) ? $rs->getEntrantPhoneNumbers($id) : null,
+        'entrantNumbers' => $this->auth->isAuthorized($req, $id) ? $rs->getEntrantPhoneNumbers($id) : null,
         'entrantCount' => $rs->getEntrantCount($id)
     ]);
 });
 
-$app->post('/twilio', function() use ($app, $rs) {
-    if ($rs->recordEntry($app->request()->post('Body'), $app->request->post('From'))) {
-        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>
-            <Message>Your entry into " . $rs->getNameByCode($app->request->post('Body')) . " has been received!</Message>
-        </Response>";
-    } else {
-        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response />";
-    }
+$app->post('/twilio', function(Request $req, Response $res) {
+    /** @var RaffleService $rs */
+    $rs = $this->raffleService;
+    $body = $req->getParsedBody();
+
+    if ($rs->recordEntry($body['Body'], $body['From']))
+        return $res->write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>
+            <Message>Your entry into " . $rs->getNameByCode($body['Body']) . " has been received!</Message>
+        </Response>");
+
+    return $res->write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response />");
 });
 
-$app->post('/:id', function($id) use ($app, $rs, $isAuthorized) {
-    if (!$rs->raffleExists($id)) {
-        $app->response()->setStatus(404);
-        $app->render('not_found.php');
-        return;
-    }
+$app->post('/{id}', function(Request $req, Response $res, array $args) {
+    $id = $args['id'];
+    /** @var RaffleService $rs */
+    $rs = $this->raffleService;
 
-    if (!$isAuthorized) {
-        $app->redirect('/' . $id);
-        return;
-    }
+    if (!$rs->raffleExists($id))
+        return $this->view->renderNotFound($res);
+
+    if (!$this->auth->isAuthorized($req, $id))
+        return $res->withRedirect('/');
 
     $data = ['raffleName' => $rs->getName($id)];
 
     if (!$rs->isComplete($id))
         $data['winnerNumbers'] = $rs->complete($id);
 
-    $app->render('finished.php', $data);
+    return $this->view->render($res, 'finished.php', $data);
 });
 
 $app->run();

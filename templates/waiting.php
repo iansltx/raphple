@@ -1,5 +1,3 @@
-<?php extract($this->data->all(), EXTR_SKIP); ?>
-
 <?php require 'header.php' ?>
 
 <div class="jumbotron">

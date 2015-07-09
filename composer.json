@@ -10,8 +10,8 @@
     }
   ],
   "require": {
-    "slim/slim": "2.*",
     "twilio/sdk": "dev-master",
-    "aura/sql":"2.*"
+    "aura/sql":"2.*",
+    "slim/slim": "3.x-dev"
   }
 }
