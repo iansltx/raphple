@@ -34,23 +34,15 @@ formats also vary between providers, but as long as you only use one at a time t
 In addition to the below env vars, set `PHONE_NUMBER` to the number you'll use to receive (and send) raffle-related
 texts.
 
-### Twilio
-
-| Env vars | TWILIO_SID, TWILIO_TOKEN |
-| Webhook endpoint | /twilio |
-
-### Nexmo
-
-| Env vars | NEXMO_KEY, NEXMO_SECRET |
-| Webhook endpoint | /nexmo |
-
-### Dummy
-
 You can choose instead to stub out outbound SMSes. EIther of the two webhooks will still respond, but no SMSes will
 be sent. As part of the dummy SMS provider, an arbitrary wait, in milliseconds, is injected on each fake message
 send event (you can set this to zero if you want). Messages that would have been sent will be logged to STDERR.
 
-| Env vars | DUMMY_SMS_WAIT_MS |
+| Provider | Env Vars | Webhook Endpoint |
+| --- | --- | --- |
+| Twilio | TWILIO_SID, TWILIO_TOKEN | /twilio |
+| Nexmo | NEXMO_KEY, NEXMO_SECRET | /nexmo |
+| Dummy | DUMMY_SMS_WAIT_MS | n/a |
 
 ## Contributing
 
