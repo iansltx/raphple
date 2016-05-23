@@ -1,7 +1,7 @@
 <?php
 
-use Slim\Http\Request;
-use Slim\Http\Response;
+use Aerys\Request;
+use Aerys\Response;
 
 require __DIR__ . '/smsServices.php';
 
@@ -17,11 +17,11 @@ class View
         extract($data, EXTR_SKIP);
         ob_start();
         require $this->templateDir . '/' . $filename;
-        return $res->write(ob_get_clean());
+        return $res->end(ob_get_clean());
     }
 
     public function renderNotFound(Response $res) {
-        return $this->render($res->withStatus(404), 'not_found.php');
+        return $this->render($res->setStatus(404), 'not_found.php');
     }
 }
 
@@ -127,17 +127,17 @@ class Auth
 
     public function isAuthorized(Request $req, $id) {
         $sid = $this->rs->getSid($id);
-        return $sid === $req->getCookieParams()['sid' . $id] || $sid === $req->getQueryParams()['sid'];
+        return $sid === $req->getCookie('sid' . $id) || $sid === $req->getParam('sid');
     }
 }
 
-return function(\Slim\Container $container, $env) {
+return function(\Pimple\Container $container, $env) {
     $container['view'] = function() {return new View(__DIR__ . '/../templates');};
     $container['raffleService'] = function($c) use ($env) {return new RaffleService(
         new \Aura\Sql\ExtendedPdo('mysql:host=' . $env['DB_HOST'] . ';dbname=' . $env['DB_NAME'],
             $env['DB_USER'], $env['DB_PASSWORD']), $c['sms'], $env['PHONE_NUMBER']
     );};
-    $container['auth'] = function(\Slim\Container $c) {return new Auth($c->get('raffleService'));};
+    $container['auth'] = function(\Pimple\Container $c) {return new Auth($c['raffleService']);};
 
     $container['sms'] = function() use ($env) {
         if (isset($env['TWILIO_SID'])) {
@@ -152,40 +152,5 @@ return function(\Slim\Container $container, $env) {
         throw new InvalidArgumentException('Could not find SMS service creds, and a dummy timeout was not supplied.');
     };
 
-    $container['addCookieToResponse'] = $container->protect(function(Response $res, $name, $properties) {
-        if (is_string($properties)) {
-            $properties = ['value' => $properties];
-        }
-
-        $result = urlencode($name) . '=' . urlencode($properties['value']);
-
-        if (isset($properties['domain'])) {
-            $result .= '; domain=' . $properties['domain'];
-        }
-
-        if (isset($properties['path'])) {
-            $result .= '; path=' . $properties['path'];
-        }
-
-        if (isset($properties['expires'])) {
-            if (is_string($properties['expires'])) {
-                $timestamp = strtotime($properties['expires']);
-            } else {
-                $timestamp = (int)$properties['expires'];
-            }
-            if ($timestamp !== 0) {
-                $result .= '; expires=' . gmdate('D, d-M-Y H:i:s e', $timestamp);
-            }
-        }
-
-        if (isset($properties['secure']) && $properties['secure']) {
-            $result .= '; secure';
-        }
-
-        if (isset($properties['httponly']) && $properties['httponly']) {
-            $result .= '; HttpOnly';
-        }
-
-        return $res->withAddedHeader('Set-Cookie', $result);
-    });
+    return $container;
 };

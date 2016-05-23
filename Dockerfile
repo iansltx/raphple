@@ -1,28 +1,24 @@
-FROM alpine:edge
+FROM php:7.0-cli
 
-# install packages
-RUN echo "@testing http://dl-4.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
-apk add --update curl php7-common@testing php7-curl@testing php7-phar@testing php7-mbstring@testing \
-php7-pcntl@testing php7-json@testing php7-opcache@testing php7-fpm@testing php7@testing php7-openssl@testing \
-php7-pdo_mysql@testing openssl nginx runit@testing && rm -rf /var/cache/apk/*
+# Install more packages
+RUN apt-get update && apt-get install -y git automake libtool gcc && \
+docker-php-ext-install -j$(nproc) pdo pdo_mysql
+
+# install php-uv
+RUN git clone https://github.com/bwoebi/php-uv.git /var/php-uv --recursive && cd /var/php-uv && \
+mkdir libuv && curl -L https://github.com/libuv/libuv/archive/v1.9.0.tar.gz | tar xzf - && \
+cd /var/php-uv/libuv-1.9.0 && ./autogen.sh && ./configure --prefix=$(readlink -f `pwd`/../libuv) && \
+make CFLAGS=-fPIC && make install && cd .. && mv libuv-1.9.0 libuv && cd /var/php-uv && phpize && \
+./configure --with-uv=$(readlink -f `pwd`/libuv) && make && make install
 
 # Install Composer
 RUN curl https://getcomposer.org/composer.phar > /usr/sbin/composer
 
 # Copy configs
 COPY container/php.ini /etc/php7/php.ini
-COPY container/nginx.conf /etc/nginx/nginx.conf
-COPY container/fpm.conf /etc/php7/php-fpm.conf
 
-# set up runit
-COPY container/runsvinit /sbin/runsvinit
-RUN mkdir /tmp/nginx && mkdir -p /etc/service/nginx && echo '#!/bin/sh' >> /etc/service/nginx/run && \
-echo 'nginx' >> /etc/service/nginx/run && chmod +x /etc/service/nginx/run && \
-mkdir -p /etc/service/fpm && echo '#!/bin/sh' >> /etc/service/fpm/run && \
-echo 'php-fpm7 -FR' >> /etc/service/fpm/run && chmod +x /etc/service/fpm/run && \
-chmod +x /sbin/runsvinit
-ENTRYPOINT ["/sbin/runsvinit"]
-EXPOSE 80
+ENTRYPOINT ["php", "/var/app/vendor/bin/aerys", "-d", "-c", "/var/app/public/index.php"]
+EXPOSE 9000
 
 # For local dev, mount volume
 VOLUME /var/app
@@ -31,7 +27,7 @@ VOLUME /var/app
 # RUN mkdir /var/app
 # COPY composer.lock /var/app/composer.lock
 # COPY composer.json /var/app/composer.json
-# RUN cd /var/app && php7 /usr/sbin/composer install --prefer-dist -o
+# RUN cd /var/app && php /usr/sbin/composer install --prefer-dist -o
 # COPY templates /var/app/templates
 # COPY public /var/app/public
-# COPY bootstrap /var/app/bootstrap
+

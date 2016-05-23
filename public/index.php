@@ -1,9 +1,10 @@
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
+const AERYS_OPTIONS = [
+    "user" => "www-data",
+];
 
-$app = new \Slim\App();
-call_user_func(require __DIR__ . '/../bootstrap/services.php', $app->getContainer(), $_SERVER + $_ENV);
-call_user_func(require __DIR__ . '/../bootstrap/routes.php', $app);
-
-$app->run();
+$container = call_user_func(require __DIR__ . '/../bootstrap/services.php', new Pimple\Container(), $_SERVER + $_ENV);
+(new Aerys\Host)->expose("*", 80)->name('90576ab5.ngrok.io')
+    ->use(call_user_func(require __DIR__ . '/../bootstrap/routes.php', $container, Aerys\router())) // routes
+    ->use(Aerys\root(__DIR__)); // static file serving
