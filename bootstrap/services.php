@@ -1,7 +1,7 @@
 <?php
 
-use Slim\Http\Request;
-use Slim\Http\Response;
+use Psr\Http\Message\RequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
 
 require __DIR__ . '/smsServices.php';
 
@@ -17,7 +17,8 @@ class View
         extract($data, EXTR_SKIP);
         ob_start();
         require $this->templateDir . '/' . $filename;
-        return $res->write(ob_get_clean());
+        $res->getBody()->write(ob_get_clean());
+        return $res;
     }
 
     public function renderNotFound(Response $res) {
@@ -127,7 +128,21 @@ class Auth
 
     public function isAuthorized(Request $req, $id) {
         $sid = $this->rs->getSid($id);
-        return $sid === $req->getCookieParams()['sid' . $id] || $sid === $req->getQueryParams()['sid'];
+
+        $cookieValues = [];
+        if ($req->hasHeader('Cookie')) {
+            foreach (explode(';', $req->getHeader('Cookie')[0]) as $cookie) {
+                list($cookieKey, $cookieValue) = explode('=', $cookie, 2);
+                $cookieValues[trim($cookieKey)] = trim($cookieValue);
+            }
+        }
+        foreach ($req->getHeader('Cookie') as $cookieString) {
+            parse_str($cookieString, $cookie);
+            $cookieValues = array_merge($cookieValues, $cookie);
+        }
+        parse_str($req->getUri()->getQuery(), $qs);
+
+        return $sid === @$cookieValues['sid' . $id] || $sid === @$qs['sid'];
     }
 }
 
