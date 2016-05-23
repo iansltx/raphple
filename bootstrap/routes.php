@@ -4,6 +4,35 @@ use Slim\Http\Request;
 use Slim\Http\Response;
 
 return function(\Slim\App $app) {
+    // incoming SMS webhooks
+
+    $app->post('/twilio', function (Request $req, Response $res) {
+        /** @var RaffleService $rs */
+        $rs = $this->raffleService;
+        $body = $req->getParsedBody();
+
+        if ($rs->recordEntry($body['Body'], $body['From']))
+            return $res->write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>
+            <Message>Your entry into " . $rs->getNameByCode($body['Body']) . " has been received!</Message>
+        </Response>");
+
+        return $res->write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response />");
+    });
+
+    $app->get('/nexmo', functioN(Request $req, Response $res) {
+        /** @var RaffleService $rs */
+        $rs = $this->raffleService;
+        $qs = $req->getQueryParams();
+        $code = $qs['text'];
+
+        if ($rs->recordEntry($code, $qs['msisdn'])) {
+            $this->sms->send($qs['msisdn'], 'Your entry into ' . $rs->getNameByCode($code) . ' has been received!');
+        }
+        return $res->withStatus(200, "OK")->write('Message received.');
+    });
+
+    // end of webhooks
+
     $app->get('/', function (Request $req, Response $res) {
         return $this->view->render($res, 'home.php');
     });
@@ -62,19 +91,6 @@ return function(\Slim\App $app) {
             'entrantNumbers' => $this->auth->isAuthorized($req, $id) ? $rs->getEntrantPhoneNumbers($id) : null,
             'entrantCount' => $rs->getEntrantCount($id)
         ]);
-    });
-
-    $app->post('/twilio', function (Request $req, Response $res) {
-        /** @var RaffleService $rs */
-        $rs = $this->raffleService;
-        $body = $req->getParsedBody();
-
-        if ($rs->recordEntry($body['Body'], $body['From']))
-            return $res->write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>
-            <Message>Your entry into " . $rs->getNameByCode($body['Body']) . " has been received!</Message>
-        </Response>");
-
-        return $res->write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response />");
     });
 
     $app->post('/{id}', function (Request $req, Response $res, array $args) {
