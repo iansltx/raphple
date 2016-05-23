@@ -1,0 +1,12 @@
+#!/bin/sh
+
+sv_stop() {
+    for s in $(ls -d /etc/service/*)
+    do
+        /sbin/sv stop $s
+    done
+}
+
+trap "sv_stop; exit" SIGTERM
+/sbin/runsvdir /etc/service &
+wait
