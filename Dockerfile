@@ -15,7 +15,7 @@ make CFLAGS=-fPIC && make install && cd .. && mv libuv-1.9.0 libuv && cd /var/ph
 RUN curl https://getcomposer.org/composer.phar > /usr/sbin/composer
 
 # Copy configs
-COPY container/php.ini /etc/php7/php.ini
+COPY container/php.ini /usr/local/etc/php
 
 ENTRYPOINT ["php", "/var/app/vendor/bin/aerys", "-d", "-c", "/var/app/public/index.php"]
 EXPOSE 9000
