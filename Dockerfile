@@ -34,3 +34,4 @@ VOLUME /var/app
 # RUN cd /var/app && php7 /usr/sbin/composer install --prefer-dist -o
 # COPY templates /var/app/templates
 # COPY public /var/app/public
+# COPY bootstrap /var/app/bootstrap
