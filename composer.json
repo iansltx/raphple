@@ -1,7 +1,6 @@
 {
   "name": "iansltx/raphple",
   "description": "PHP Raffler with Twilio",
-  "minimum-stability": "dev",
   "license": "BSD-2-Clause",
   "authors": [
     {
@@ -11,7 +10,7 @@
   ],
   "require": {
     "twilio/sdk": "dev-master",
-    "aura/sql":"2.*",
-    "slim/slim": "3.x-dev"
+    "aura/sql":"^2.5.0",
+    "slim/slim": "^3.4.1"
   }
 }
