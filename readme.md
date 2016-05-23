@@ -1,7 +1,7 @@
 # Raphple
 
-A mobile phone based online raffle system using PHP, MySQL, Slim Framework and Twilio. You can see a live implementation
-as http://raphple.com.
+A mobile phone based online raffle system using PHP, MySQL, Slim Framework and Twilio or Nexmo. You can see a live
+implementation (using Twilio) as http://raphple.com.
 
 ## Setup (non-Docker)
 
