@@ -3,7 +3,7 @@ FROM alpine:edge
 # install packages
 RUN echo "@testing http://dl-4.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
 apk add --update curl php7-common@testing php7-curl@testing php7-phar@testing php7-mbstring@testing \
-php7-pcntl@testing php7-json@testing php7-opcache@testing php7-fpm@testing php7@testing php7-openssl@testing \
+php7-pcntl@testing php7-json@testing php7-opcache@testing php7@testing php7-openssl@testing \
 php7-pdo_mysql@testing openssl nginx runit@testing && rm -rf /var/cache/apk/*
 
 # Install Composer
@@ -18,9 +18,9 @@ COPY container/fpm.conf /etc/php7/php-fpm.conf
 COPY container/runsvinit /sbin/runsvinit
 RUN mkdir /tmp/nginx && mkdir -p /etc/service/nginx && echo '#!/bin/sh' >> /etc/service/nginx/run && \
 echo 'nginx' >> /etc/service/nginx/run && chmod +x /etc/service/nginx/run && \
-mkdir -p /etc/service/fpm && echo '#!/bin/sh' >> /etc/service/fpm/run && \
-echo 'php-fpm7 -FR' >> /etc/service/fpm/run && chmod +x /etc/service/fpm/run && \
-chmod +x /sbin/runsvinit
+mkdir -p /etc/service/fcgi && echo '#!/bin/sh' >> /etc/service/fcgi/run && \
+echo 'php7 /var/app/public/index.php run --port=9000 --host=127.0.0.1' >> /etc/service/fcgi/run \
+&& chmod +x /etc/service/fcgi/run && chmod +x /sbin/runsvinit
 ENTRYPOINT ["/sbin/runsvinit"]
 EXPOSE 80
 
