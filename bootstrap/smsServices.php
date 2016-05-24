@@ -22,6 +22,7 @@ class TwilioSMS implements SMS
     {
         return (new \Amp\Artax\Client)->request((new \Amp\Artax\Request())->setMethod('POST')
             ->setUri('https://api.twilio.com/2010-04-01/Accounts/' . $this->sid . '/Messages.json')
+            ->appendHeader('Authorization', 'Basic ' . base64_encode($this->sid . ':' . $this->token))
             ->setBody(http_build_query([
                     'To' => $to,
                     'From' => $this->fromNumber,
