@@ -20,20 +20,14 @@ class TwilioSMS implements SMS
 
     public function send($to, $text)
     {
-        file_get_contents('https://api.twilio.com/2010-04-01/Accounts/' . $this->sid . '/Messages.json', false,
-            stream_context_create([
-                'http' => [
-                    'method' => 'POST',
-                    'header' => [
-                        'Content-type: application/x-www-form-urlencoded',
-                        'Authorization: Basic ' . base64_encode($this->sid . ':' . $this->token)
-                    ],
-                    'content' => http_build_query([
-                        'To' => $to,
-                        'From' => $this->fromNumber,
-                        'Body' => $text
-                    ])
-                ]]));
+        return (new \Amp\Artax\Client)->request((new \Amp\Artax\Request())->setMethod('POST')
+            ->setUri('https://api.twilio.com/2010-04-01/Accounts/' . $this->sid . '/Messages.json')
+            ->setBody(http_build_query([
+                    'To' => $to,
+                    'From' => $this->fromNumber,
+                    'Body' => $text
+                ]))
+        );
     }
 }
 
@@ -52,13 +46,13 @@ class NexmoSMS implements SMS
 
     public function send($to, $text)
     {
-        error_log(file_get_contents('https://rest.nexmo.com/sms/json?' . http_build_query([
+        return (new \Amp\Artax\Client)->request('https://rest.nexmo.com/sms/json?' . http_build_query([
             'api_key' => $this->key,
             'api_secret' => $this->secret,
             'to' => $to,
             'from' => $this->fromNumber,
             'text' => $text
-        ])));
+        ]));
     }
 }
 
