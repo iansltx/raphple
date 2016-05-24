@@ -30,7 +30,7 @@ class RaffleService {
     protected $sms;
     protected $phoneNumber;
 
-    public function __construct(\Aura\Sql\ExtendedPdoInterface $db, SMS $sms, $phone_number) {
+    public function __construct(\Amp\Mysql\Pool $db, SMS $sms, $phone_number) {
         $this->db = $db;
         $this->sms = $sms;
         $this->phoneNumber = $phone_number;
@@ -38,15 +38,24 @@ class RaffleService {
 
     public function create($name, array $items) {
         $sid = uniqid();
-        $this->db->perform('INSERT INTO raffle (raffle_name, sid) VALUES(?, ?)', [$name, $sid]);
-        $id = $this->db->lastInsertId();
+        /** @var \Amp\Mysql\Connection $conn */
+        $conn = yield $this->db->getConnection(); // need a stateful connection for this call
+        yield $conn->prepare('INSERT INTO raffle (raffle_name, sid) VALUES(?, ?)', [$name, $sid]);
+        $id = $conn->getConnInfo()->insertId;
+        /** @var \Amp\Mysql\Stmt $itemsStmt */
+        $itemsStmt = yield $conn->prepare('INSERT INTO raffle_item (raffle_id, item) VALUES(?, ?)');
         foreach ($items as $item)
-            $this->db->perform('INSERT INTO raffle_item (raffle_id, item) VALUES(?, ?)', [$id, $item]);
+            yield $itemsStmt->execute([$id, $item]);
         return $id;
     }
 
     public function getEntrantCount($id) {
-        return $this->db->fetchValue('SELECT COUNT(*) FROM entrant WHERE raffle_id = ?', [$id]);
+        /** @var \Amp\Mysql\Stmt $stmt */
+        $stmt = yield $this->db->prepare('SELECT COUNT(*) FROM entrant WHERE raffle_id = ?');
+        /** @var \Amp\Mysql\ResultSet $resultSet */
+        $resultSet = yield $stmt->execute([$id]);
+        $row = yield $resultSet->fetchRow();
+        return $row[0];
     }
 
     public function getPhoneNumber($id) {
@@ -58,11 +67,17 @@ class RaffleService {
     }
 
     public function isComplete($id) {
-        return $this->db->fetchValue('SELECT COUNT(*) FROM raffle WHERE is_complete = 1 && id = ?', [$id]);
+        /** @var \Amp\Mysql\ResultSet $resultSet */
+        $resultSet = yield $this->db->prepare('SELECT COUNT(*) FROM raffle WHERE is_complete = 1 && id = ?', [$id]);
+        $row = yield $resultSet->fetchRow();
+        return $row[0] > 0;
     }
 
     public function getName($id) {
-        return $this->db->fetchValue('SELECT raffle_name FROM raffle WHERE id = ?', [$id]);
+        /** @var \Amp\Mysql\ResultSet $resultSet */
+        $resultSet = yield $this->db->prepare('SELECT raffle_name FROM raffle WHERE id = ?', [$id]);
+        $row = yield $resultSet->fetchRow();
+        return $row[0];
     }
 
     public function getNameByCode($code) {
@@ -70,18 +85,35 @@ class RaffleService {
     }
 
     public function getSid($id) {
-        return $this->db->fetchValue('SELECT sid FROM raffle WHERE id = ?', [$id]);
+        /** @var \Amp\Mysql\ResultSet $resultSet */
+        $resultSet = yield $this->db->prepare('SELECT sid FROM raffle WHERE id = ?', [$id]);
+        $row = yield $resultSet->fetchRow();
+        return $row[0];
     }
 
     public function getEntrantPhoneNumbers($id) {
-        return $this->db->fetchCol('SELECT phone_number FROM entrant WHERE raffle_id = ?', [$id]);
+        /** @var \Amp\Mysql\ResultSet $resultSet */
+        $resultSet = yield $this->db->prepare('SELECT phone_number FROM entrant WHERE raffle_id = ?', [$id]);
+        $rows = yield $resultSet->fetchRows();
+        return array_column($rows, 0);
     }
 
     public function complete($id) {
-        $this->db->perform('UPDATE raffle SET is_complete = 1 WHERE id = ?', [$id]);
+        yield $this->db->prepare('UPDATE raffle SET is_complete = 1 WHERE id = ?', [$id]);
 
-        $items = $this->db->fetchCol('SELECT item FROM raffle_item WHERE raffle_id = ? ORDER BY id ASC', [$id]);
-        $entrants = $this->db->fetchCol('SELECT phone_number FROM entrant WHERE raffle_id = ?', [$id]);
+        /** @var \Amp\Mysql\ResultSet[] $resultSets */
+        $resultSets = yield Amp\all([
+            $this->db->prepare('SELECT item FROM raffle_item WHERE raffle_id = ? ORDER BY id ASC', [$id]),
+            $this->db->prepare('SELECT phone_number FROM entrant WHERE raffle_id = ?', [$id])
+        ]);
+
+        $rowSets = yield Amp\all([
+            $resultSets[0]->fetchRows(),
+            $resultSets[1]->fetchRows()
+        ]);
+
+        $items = array_column($rowSets[0], 0);
+        $entrants = array_column($rowSets[1], 0);
 
         shuffle($entrants);
 
@@ -102,18 +134,26 @@ class RaffleService {
     }
 
     public function recordEntry($code, $phone_number) {
-        if (!$this->raffleExists($code))
-            return false;
-        if ($this->db->fetchValue('SELECT COUNT(*) FROM entrant WHERE raffle_id = ? && phone_number = ?',
-            [$code, $phone_number]))
+        if (!(yield from $this->raffleExists($code)))
             return false;
 
-        $this->db->perform('INSERT INTO entrant (raffle_id, phone_number) VALUES (?, ?)', [$code, $phone_number]);
+        /** @var \Amp\Mysql\ResultSet $entrantCtRs */
+        $entrantCtRs = yield $this->db->prepare('SELECT COUNT(*) FROM entrant WHERE raffle_id = ? && phone_number = ?',
+            [$code, $phone_number]);
+        $entrantCtRow = yield $entrantCtRs->fetchRow();
+
+        if ($entrantCtRow[0]) {
+            return false;
+        }
+
+        yield $this->db->prepare('INSERT INTO entrant (raffle_id, phone_number) VALUES (?, ?)', [$code, $phone_number]);
         return true;
     }
 
     public function raffleExists($id) {
-        return $this->db->fetchValue('SELECT COUNT(*) FROM raffle WHERE id = ?', [$id]) > 0;
+        /** @var \Amp\Mysql\ResultSet $existenceRs */
+        $existenceRs = yield $this->db->prepare('SELECT COUNT(*) FROM raffle WHERE id = ?', [$id]);
+        return (yield $existenceRs->fetchRow()) > 0;
     }
 }
 
@@ -126,17 +166,17 @@ class Auth
     }
 
     public function isAuthorized(Request $req, $id) {
-        $sid = $this->rs->getSid($id);
+        $sid = yield from $this->rs->getSid($id);
         return $sid === $req->getCookie('sid' . $id) || $sid === $req->getParam('sid');
     }
 }
 
 return function(\Pimple\Container $container, $env) {
     $container['view'] = function() {return new View(__DIR__ . '/../templates');};
-    $container['raffleService'] = function($c) use ($env) {return new RaffleService(
-        new \Aura\Sql\ExtendedPdo('mysql:host=' . $env['DB_HOST'] . ';dbname=' . $env['DB_NAME'],
-            $env['DB_USER'], $env['DB_PASSWORD']), $c['sms'], $env['PHONE_NUMBER']
-    );};
+    $container['raffleService'] = function($c) use ($env) {
+        return new RaffleService(new \Amp\Mysql\Pool('host=' . $env['DB_HOST'] . ';db=' . $env['DB_NAME'] .
+            ";user=" . $env['DB_USER'] . ";pass=" . $env['DB_PASSWORD']), $c['sms'], $env['PHONE_NUMBER']);
+    };
     $container['auth'] = function(\Pimple\Container $c) {return new Auth($c['raffleService']);};
 
     $container['sms'] = function() use ($env) {

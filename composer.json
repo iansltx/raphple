@@ -9,8 +9,8 @@
     }
   ],
   "require": {
-    "aura/sql":"^2.5.0",
     "amphp/aerys": "^0.4.3",
-    "pimple/pimple": "^3.0"
+    "pimple/pimple": "^3.0",
+    "amphp/mysql": "^0.1.3"
   }
 }

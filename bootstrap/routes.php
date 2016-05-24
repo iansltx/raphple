@@ -9,12 +9,13 @@ return function(\Pimple\Container $c, \Aerys\Router $app) {
     $app->route('POST', '/twilio', function (Request $req, Response $res) use ($c) {
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
+        /** @var \Aerys\ParsedBody $body */
         $body = yield Aerys\parseBody($req, 4096);
 
-        if ($rs->recordEntry($body->get('Body'), $body->get('From')))
+        if (yield from $rs->recordEntry($body->get('Body'), $body->get('From')))
             return $res->end("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>
-            <Message>Your entry into " . $rs->getNameByCode($body->get('Body')) . " has been received!</Message>
-        </Response>");
+            <Message>Your entry into " . yield from $rs->getNameByCode($body->get('Body')) . " has been received!</Message>
+            </Response>");
 
         return $res->end("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response />");
     });
@@ -25,8 +26,8 @@ return function(\Pimple\Container $c, \Aerys\Router $app) {
         $from = $req->getParam('msisdn');
         $code = $req->getParam('text');
 
-        if ($rs->recordEntry($code, $from)) {
-            $c['sms']->send($from, 'Your entry into ' . $rs->getNameByCode($code) . ' has been received!');
+        if (yield from $rs->recordEntry($code, $from)) {
+            $c['sms']->send($from, 'Your entry into ' . (yield from $rs->getNameByCode($code)) . ' has been received!');
         }
         return $res->setStatus(200)->end('Message received.');
     });
@@ -53,9 +54,9 @@ return function(\Pimple\Container $c, \Aerys\Router $app) {
             return $c['view']->render($res, 'home.php',
                 ['raffleItems' => $items, 'raffleName' => $name, 'errors' => $errors]);
 
-        $id = $c['raffleService']->create($name, explode("\n", trim($items)));
+        $id = yield from $c['raffleService']->create($name, explode("\n", trim($items)));
 
-        $res->addHeader('Location', '/' . $id)->setCookie('sid' . $id, $c['raffleService']->getSid($id))
+        $res->addHeader('Location', '/' . $id)->setCookie('sid' . $id, yield from $c['raffleService']->getSid($id))
             ->setStatus(302)->end();
     });
 
@@ -64,13 +65,13 @@ return function(\Pimple\Container $c, \Aerys\Router $app) {
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
 
-        if (!$rs->raffleExists($id))
+        if (!(yield from $rs->raffleExists($id)))
             return $c['view']->renderNotFound($res);
 
         if ($req->getParam('show') === 'entrants') {
-            $output = ['is_complete' => $rs->isComplete($id)];
+            $output = ['is_complete' => yield from $rs->isComplete($id)];
 
-            $numbers = $rs->getEntrantPhoneNumbers($id);
+            $numbers = yield from $rs->getEntrantPhoneNumbers($id);
             $output['count'] = count($numbers);
 
             if ($c['auth']->isAuthorized($req, $id))
@@ -81,14 +82,15 @@ return function(\Pimple\Container $c, \Aerys\Router $app) {
             return $res->end(json_encode($output));
         }
 
-        if ($rs->isComplete($id))
-            return $c['view']->render($res, 'finished.php', ['raffleName' => $rs->getName($id)]);
+        if (yield from $rs->isComplete($id))
+            return $c['view']->render($res, 'finished.php', ['raffleName' => yield from $rs->getName($id)]);
 
         return $c['view']->render($res, 'waiting.php', [
             'phoneNumber' => $rs->getPhoneNumber($id),
             'code' => $rs->getCode($id),
-            'entrantNumbers' => $c['auth']->isAuthorized($req, $id) ? $rs->getEntrantPhoneNumbers($id) : null,
-            'entrantCount' => $rs->getEntrantCount($id)
+            'entrantNumbers' => $c['auth']->isAuthorized($req, $id) ?
+                yield from $rs->getEntrantPhoneNumbers($id) : null,
+            'entrantCount' => yield from $rs->getEntrantCount($id)
         ]);
     });
 
@@ -97,16 +99,16 @@ return function(\Pimple\Container $c, \Aerys\Router $app) {
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
 
-        if (!$rs->raffleExists($id))
+        if (!(yield from $rs->raffleExists($id)))
             return $c['view']->renderNotFound($res);
 
         if (!$c['auth']->isAuthorized($req, $id))
             return $res->addHeader('Location', '/')->setStatus(302)->end();
 
-        $data = ['raffleName' => $rs->getName($id)];
+        $data = ['raffleName' => yield from $rs->getName($id)];
 
-        if (!$rs->isComplete($id))
-            $data['winnerNumbers'] = $rs->complete($id);
+        if (!(yield from $rs->isComplete($id)))
+            $data['winnerNumbers'] = yield from $rs->complete($id);
 
         return $c['view']->render($res, 'finished.php', $data);
     });

@@ -1,11 +1,8 @@
 FROM php:7.0-cli
 
-# Install more packages
-RUN apt-get update && apt-get install -y git automake libtool gcc && \
-docker-php-ext-install -j$(nproc) pdo pdo_mysql
-
 # install php-uv
-RUN git clone https://github.com/bwoebi/php-uv.git /var/php-uv --recursive && cd /var/php-uv && \
+RUN apt-get update && apt-get install -y git automake libtool gcc && \
+git clone https://github.com/bwoebi/php-uv.git /var/php-uv --recursive && cd /var/php-uv && \
 mkdir libuv && curl -L https://github.com/libuv/libuv/archive/v1.9.0.tar.gz | tar xzf - && \
 cd /var/php-uv/libuv-1.9.0 && ./autogen.sh && ./configure --prefix=$(readlink -f `pwd`/../libuv) && \
 make CFLAGS=-fPIC && make install && cd .. && mv libuv-1.9.0 libuv && cd /var/php-uv && phpize && \
