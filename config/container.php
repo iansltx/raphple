@@ -2,6 +2,7 @@
 
 use Xtreamwayz\Pimple\Container as Pimple;
 use Zend\Expressive\Container;
+use App\Action;
 
 $env = $_SERVER + $_ENV;
 
@@ -86,6 +87,36 @@ $container['sms'] = function() use ($env) {
         return new \App\Service\DummySMS($env['DUMMY_SMS_WAIT_MS']);
     }
     throw new InvalidArgumentException('Could not find SMS service creds, and a dummy timeout was not supplied.');
+};
+
+$container[Action\TwilioAction::class] = function($c) {
+    return new Action\TwilioAction($c['raffleService']);
+};
+$container[Action\NexmoAction::class] = function($c) {
+    return new Action\NexmoAction($c['raffleService'], $c['sms']);
+};
+$container[Action\HomeAction::class] = function($c) {
+    return new Action\HomeAction($c[\Zend\Expressive\Template\TemplateRendererInterface::class]);
+};
+$container[Action\CreateAction::class] = function($c) {
+    return new Action\CreateAction(
+        $c[\Zend\Expressive\Template\TemplateRendererInterface::class],
+        $c['raffleService']
+    );
+};
+$container[Action\GetAction::class] = function($c) {
+    return new Action\GetAction(
+        $c[\Zend\Expressive\Template\TemplateRendererInterface::class],
+        $c['raffleService'],
+        $c['auth']
+    );
+};
+$container[Action\CompleteAction::class] = function($c) {
+    return new Action\CompleteAction(
+        $c[\Zend\Expressive\Template\TemplateRendererInterface::class],
+        $c['raffleService'],
+        $c['auth']
+    );
 };
 
 return $container;
