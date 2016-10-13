@@ -12,11 +12,9 @@ return [
     ],
 
     'templates' => [
-        'extension' => 'phtml',
+        'extension' => 'php',
         'paths' => [
-            'app'    => ['templates/app'],
-            'layout' => ['templates/layout'],
-            'error'  => ['templates/error'],
+            'app'    => ['templates']
         ]
     ]
 ];

@@ -16,6 +16,6 @@ class HomeAction
     }
 
     public function __invoke(Request $req, Response $res, callable $next) {
-        return $this->render($res, 'home.php');
+        return $this->render($res, 'home');
     }
 }

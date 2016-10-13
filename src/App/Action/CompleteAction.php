@@ -37,6 +37,6 @@ class CompleteAction
         if (!$rs->isComplete($id))
             $data['winnerNumbers'] = $rs->complete($id);
 
-        return $this->render($res, 'finished.php', $data);
+        return $this->render($res, 'finished', $data);
     }
 }

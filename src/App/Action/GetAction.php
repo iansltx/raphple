@@ -47,9 +47,9 @@ class GetAction
         }
 
         if ($rs->isComplete($id))
-            return $this->render($res, 'finished.php', ['raffleName' => $rs->getName($id)]);
+            return $this->render($res, 'finished', ['raffleName' => $rs->getName($id)]);
 
-        return $this->render($res, 'waiting.php', [
+        return $this->render($res, 'waiting', [
             'phoneNumber' => $rs->getPhoneNumber($id),
             'code' => $rs->getCode($id),
             'entrantNumbers' => $this->auth->isAuthorized($req, $id) ? $rs->getEntrantPhoneNumbers($id) : null,

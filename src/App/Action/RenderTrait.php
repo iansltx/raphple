@@ -14,12 +14,12 @@ trait RenderTrait
     public function render(ResponseInterface $res, $template, $params = [])
     {
         $body = $res->getBody();
-        $body->write($this->view->render($template, $params));
+        $body->write($this->view->render('app::' . $template, $params));
         return $res;
     }
 
     public function renderNotFound()
     {
-        return new HtmlResponse($this->view->render('notFound.php'), 404);
+        return new HtmlResponse($this->view->render('app::not_found'), 404);
     }
 }

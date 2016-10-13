@@ -35,7 +35,7 @@ class CreateAction
             $errors['raffle_items'] = true;
 
         if (count($errors))
-            return $this->render($res, 'home.php',
+            return $this->render($res, 'home',
                 ['raffleItems' => $items, 'raffleName' => $name, 'errors' => $errors]);
 
         $id = $this->raffleService->create($name, explode("\n", trim($items)));
