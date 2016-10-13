@@ -3,6 +3,9 @@
 use Xtreamwayz\Pimple\Container as Pimple;
 use Zend\Expressive\Container;
 use App\Action;
+use App\Service\RaffleService;
+use App\Service\Auth;
+use App\Service\SMS;
 
 $env = $_SERVER + $_ENV;
 
@@ -70,13 +73,13 @@ $container['Zend\Expressive\WhoopsPageHandler'] = new Container\WhoopsPageHandle
 
 $container['Zend\Expressive\FinalHandler'] = new Container\WhoopsErrorHandlerFactory();
 
-$container['raffleService'] = function($c) use ($env) {return new \App\Service\RaffleService(
+$container[RaffleService::class] = function($c) use ($env) {return new \App\Service\RaffleService(
     new \Aura\Sql\ExtendedPdo('mysql:host=' . $env['DB_HOST'] . ';dbname=' . $env['DB_NAME'],
-        $env['DB_USER'], $env['DB_PASSWORD']), $c['sms'], $env['PHONE_NUMBER']
+        $env['DB_USER'], $env['DB_PASSWORD']), $c[SMS::class], $env['PHONE_NUMBER']
 );};
-$container['auth'] = function(Pimple $c) {return new \App\Service\Auth($c->get('raffleService'));};
+$container[Auth::class] = function(Pimple $c) {return new \App\Service\Auth($c->get(RaffleService::class));};
 
-$container['sms'] = function() use ($env) {
+$container[SMS::class] = function() use ($env) {
     if (isset($env['TWILIO_SID'])) {
         return new \App\Service\TwilioSMS($env['TWILIO_SID'], $env['TWILIO_TOKEN'], $env['PHONE_NUMBER']);
     }
@@ -90,10 +93,10 @@ $container['sms'] = function() use ($env) {
 };
 
 $container[Action\TwilioAction::class] = function($c) {
-    return new Action\TwilioAction($c['raffleService']);
+    return new Action\TwilioAction($c[RaffleService::class]);
 };
 $container[Action\NexmoAction::class] = function($c) {
-    return new Action\NexmoAction($c['raffleService'], $c['sms']);
+    return new Action\NexmoAction($c[RaffleService::class], $c[SMS::class]);
 };
 $container[Action\HomeAction::class] = function($c) {
     return new Action\HomeAction($c[\Zend\Expressive\Template\TemplateRendererInterface::class]);
@@ -101,21 +104,21 @@ $container[Action\HomeAction::class] = function($c) {
 $container[Action\CreateAction::class] = function($c) {
     return new Action\CreateAction(
         $c[\Zend\Expressive\Template\TemplateRendererInterface::class],
-        $c['raffleService']
+        $c[RaffleService::class]
     );
 };
 $container[Action\GetAction::class] = function($c) {
     return new Action\GetAction(
         $c[\Zend\Expressive\Template\TemplateRendererInterface::class],
-        $c['raffleService'],
-        $c['auth']
+        $c[RaffleService::class],
+        $c[Auth::class]
     );
 };
 $container[Action\CompleteAction::class] = function($c) {
     return new Action\CompleteAction(
         $c[\Zend\Expressive\Template\TemplateRendererInterface::class],
-        $c['raffleService'],
-        $c['auth']
+        $c[RaffleService::class],
+        $c[Auth::class]
     );
 };
 
