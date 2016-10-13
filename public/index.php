@@ -1,9 +1,18 @@
 <?php
 
+// Delegate static file requests back to the PHP built-in webserver
+if (php_sapi_name() === 'cli-server'
+    && is_file(__DIR__ . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH))
+) {
+    return false;
+}
+
+chdir(dirname(__DIR__));
 require __DIR__ . '/../vendor/autoload.php';
 
-$app = new \Slim\App();
-call_user_func(require __DIR__ . '/../bootstrap/services.php', $app->getContainer(), $_SERVER + $_ENV);
-call_user_func(require __DIR__ . '/../bootstrap/routes.php', $app);
+/** @var \Interop\Container\ContainerInterface $container */
+$container = require __DIR__ . '/../config/container.php';
 
-(new PHPFastCGI\FastCGIDaemon\ApplicationFactory)->createApplication(new PHPFastCGI\Adapter\Slim\AppWrapper($app))->run();
+/** @var \Zend\Expressive\Application $app */
+$app = $container->get(\Zend\Expressive\Application::class);
+$app->run();
