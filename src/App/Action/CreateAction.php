@@ -41,6 +41,6 @@ class CreateAction
         $id = $this->raffleService->create($name, explode("\n", trim($items)));
 
         return FigResponseCookies::set($res, SetCookie::create('sid' . $id, $this->raffleService->getSid($id)))
-            ->withHeader('Location', '/')->withStatus(302);
+            ->withHeader('Location', '/' . $id)->withStatus(302);
     }
 }

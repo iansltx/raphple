@@ -32,7 +32,7 @@ class GetAction
 
         parse_str($req->getUri()->getQuery(), $qs);
 
-        if ($qs['show'] === 'entrants') {
+        if (isset($qs['show']) && $qs['show'] === 'entrants') {
             $output = ['is_complete' => $rs->isComplete($id)];
 
             $numbers = $rs->getEntrantPhoneNumbers($id);
