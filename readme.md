@@ -20,10 +20,16 @@ You'll still need to do steps 3-5, though for step 5 you'll supply env vars to t
 includes nginx + php-fpm managed via runit, so once you point your container to your database you'll have everything
 you need.
 
-For development, comment out everything below VOLUME and uncomment VOLUME in the Dockerfile, then build, so you'll get
-live-syncing of any file changes you make without having to rebuild the container. In a production context, you'll
-want to turn off the volume mount and let the container build all the way (including file copies) for better
-performance and a portable build artifact.
+For development, mount a volume with your code to `/var/app`. Otherwise your code stay at whatever state it was when you
+built your container.
+
+So for a dev build running in the foreground on port 8080 with a dummy SMS wait of 500ms you'd run
+
+```bash
+docker build . -t raphple-slim
+docker run -p 8080:80 --name raphple-slim -v "$PWD":/var/app -e DUMMY_SMS_WAIT_MS=500 \
+-e DB_HOST=hostname -e DB_USER=user -e DB_PASSWORD=password -e DB_NAME=db raphple-slim
+```
 
 ## Setup (SMS)
 
@@ -34,7 +40,7 @@ formats also vary between providers, but as long as you only use one at a time t
 In addition to the below env vars, set `PHONE_NUMBER` to the number you'll use to receive (and send) raffle-related
 texts.
 
-You can choose instead to stub out outbound SMSes. EIther of the two webhooks will still respond, but no SMSes will
+You can choose instead to stub out outbound SMSes. Either of the two webhooks will still respond, but no SMSes will
 be sent. As part of the dummy SMS provider, an arbitrary wait, in milliseconds, is injected on each fake message
 send event (you can set this to zero if you want). Messages that would have been sent will be logged to STDERR.
 
