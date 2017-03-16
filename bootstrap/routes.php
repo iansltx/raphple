@@ -25,7 +25,7 @@ return function(\Slim\App $app) {
         $qs = $req->getQueryParams();
         $code = $qs['text'];
 
-        if ($rs->recordEntry($code, $qs['msisdn'])) {
+        if ($code && $rs->recordEntry($code, $qs['msisdn'])) {
             $this->sms->send($qs['msisdn'], 'Your entry into ' . $rs->getNameByCode($code) . ' has been received!');
         }
         return $res->withStatus(200, "OK")->write('Message received.');
