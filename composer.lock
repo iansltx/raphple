@@ -4,21 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "910a238f76617935bacbb2492d9a420f",
-    "content-hash": "a1da2ee9e172cd5732bfc2f0deb13e5b",
+    "content-hash": "34ebe60068891164a425e04cf87e8c33",
     "packages": [
         {
             "name": "amphp/aerys",
-            "version": "v0.4.3",
+            "version": "v0.4.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/amphp/aerys.git",
-                "reference": "371cb2e7bd0e41f3c67a13edab6397b4ddd291c9"
+                "reference": "d19301498f343393a4d9b14973e3389a7c3381c0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/amphp/aerys/zipball/371cb2e7bd0e41f3c67a13edab6397b4ddd291c9",
-                "reference": "371cb2e7bd0e41f3c67a13edab6397b4ddd291c9",
+                "url": "https://api.github.com/repos/amphp/aerys/zipball/d19301498f343393a4d9b14973e3389a7c3381c0",
+                "reference": "d19301498f343393a4d9b14973e3389a7c3381c0",
                 "shasum": ""
             },
             "require": {
@@ -26,7 +25,7 @@
                 "amphp/file": "^0.1.1",
                 "amphp/socket": "^0.9",
                 "league/climate": "^3",
-                "nikic/fast-route": "^0.8",
+                "nikic/fast-route": "^1",
                 "php": ">=7.0.0",
                 "psr/log": "^1"
             },
@@ -85,7 +84,7 @@
                 "server",
                 "websocket"
             ],
-            "time": "2016-04-21 17:44:33"
+            "time": "2017-02-27T13:32:41+00:00"
         },
         {
             "name": "amphp/amp",
@@ -142,20 +141,20 @@
                 "non-blocking",
                 "promise"
             ],
-            "time": "2016-05-12 12:54:59"
+            "time": "2016-05-12T12:54:59+00:00"
         },
         {
             "name": "amphp/artax",
-            "version": "v2.0.3",
+            "version": "v2.0.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/amphp/artax.git",
-                "reference": "cc665ac890322188bad8b80722d64af6207b770d"
+                "reference": "1795ed4076469546f79804b348ffd6dd77656f73"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/amphp/artax/zipball/cc665ac890322188bad8b80722d64af6207b770d",
-                "reference": "cc665ac890322188bad8b80722d64af6207b770d",
+                "url": "https://api.github.com/repos/amphp/artax/zipball/1795ed4076469546f79804b348ffd6dd77656f73",
+                "reference": "1795ed4076469546f79804b348ffd6dd77656f73",
                 "shasum": ""
             },
             "require": {
@@ -164,7 +163,7 @@
                 "php": ">=5.5.0"
             },
             "require-dev": {
-                "fabpot/php-cs-fixer": "~1.9",
+                "friendsofphp/php-cs-fixer": "~1.9",
                 "phpunit/phpunit": "~4.8"
             },
             "type": "library",
@@ -200,7 +199,7 @@
                 "parallel",
                 "rest"
             ],
-            "time": "2016-03-09 11:33:42"
+            "time": "2016-08-08T16:27:01+00:00"
         },
         {
             "name": "amphp/cache",
@@ -248,32 +247,34 @@
             ],
             "description": "A promise-aware caching API built on the amp concurrency framework",
             "homepage": "https://github.com/amphp/cache",
-            "time": "2015-09-08 22:26:20"
+            "time": "2015-09-08T22:26:20+00:00"
         },
         {
             "name": "amphp/dns",
-            "version": "v0.8.10",
+            "version": "v0.8.14",
             "source": {
                 "type": "git",
                 "url": "https://github.com/amphp/dns.git",
-                "reference": "9f12b2264f74e0cbad67565308f9e106fb6a5bec"
+                "reference": "5fc1cde2d29e94d731ab96d5ef5f9f20958315cc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/amphp/dns/zipball/9f12b2264f74e0cbad67565308f9e106fb6a5bec",
-                "reference": "9f12b2264f74e0cbad67565308f9e106fb6a5bec",
+                "url": "https://api.github.com/repos/amphp/dns/zipball/5fc1cde2d29e94d731ab96d5ef5f9f20958315cc",
+                "reference": "5fc1cde2d29e94d731ab96d5ef5f9f20958315cc",
                 "shasum": ""
             },
             "require": {
                 "amphp/amp": "^1",
                 "amphp/cache": "^0.1",
                 "amphp/file": "^0.1",
+                "amphp/windows-registry": "^0.2.2",
                 "daverandom/libdns": "^1",
                 "php": ">=5.5"
             },
             "require-dev": {
-                "fabpot/php-cs-fixer": "^1.9",
-                "phpunit/phpunit": "^4.8"
+                "friendsofphp/php-cs-fixer": "^1.9",
+                "phpunit/php-code-coverage": ">=2.2",
+                "phpunit/phpunit": "^4.8|^5.1.3"
             },
             "type": "library",
             "autoload": {
@@ -316,20 +317,20 @@
                 "dns",
                 "resolve"
             ],
-            "time": "2016-03-26 20:35:44"
+            "time": "2017-02-05T22:17:40+00:00"
         },
         {
             "name": "amphp/file",
-            "version": "v0.1.2",
+            "version": "v0.1.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/amphp/file.git",
-                "reference": "7e04d6badea1f904cb1b894771f9c7e073799874"
+                "reference": "6612ae6757d4719492ed8b34ea6181ff67cfbed1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/amphp/file/zipball/7e04d6badea1f904cb1b894771f9c7e073799874",
-                "reference": "7e04d6badea1f904cb1b894771f9c7e073799874",
+                "url": "https://api.github.com/repos/amphp/file/zipball/6612ae6757d4719492ed8b34ea6181ff67cfbed1",
+                "reference": "6612ae6757d4719492ed8b34ea6181ff67cfbed1",
                 "shasum": ""
             },
             "require": {
@@ -337,13 +338,14 @@
                 "php": ">=5.5"
             },
             "require-dev": {
-                "fabpot/php-cs-fixer": "~1.9",
+                "friendsofphp/php-cs-fixer": "~1.9",
                 "phpunit/phpunit": "~4.8"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "0.1.0-dev"
+                    "dev-master": "0.1.0-dev",
+                    "dev-amp_v2": "0.2.0-dev"
                 }
             },
             "autoload": {
@@ -375,7 +377,7 @@
                 "non-blocking",
                 "static"
             ],
-            "time": "2016-03-24 17:31:44"
+            "time": "2016-10-01T17:43:52+00:00"
         },
         {
             "name": "amphp/mysql",
@@ -412,20 +414,63 @@
                 }
             ],
             "description": "Asynchronous parallel Mysql client built on the Amp concurrency framework",
-            "time": "2016-04-19 23:08:56"
+            "time": "2016-04-19T23:08:56+00:00"
         },
         {
-            "name": "amphp/socket",
-            "version": "v0.9.7",
+            "name": "amphp/process",
+            "version": "v0.1.3",
             "source": {
                 "type": "git",
-                "url": "https://github.com/amphp/socket.git",
-                "reference": "aa784fe3a18fa8514e57714142488f629073c7a9"
+                "url": "https://github.com/amphp/process.git",
+                "reference": "f22cca2af36e442b771c0de2e24e8025550d8ffc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/amphp/socket/zipball/aa784fe3a18fa8514e57714142488f629073c7a9",
-                "reference": "aa784fe3a18fa8514e57714142488f629073c7a9",
+                "url": "https://api.github.com/repos/amphp/process/zipball/f22cca2af36e442b771c0de2e24e8025550d8ffc",
+                "reference": "f22cca2af36e442b771c0de2e24e8025550d8ffc",
+                "shasum": ""
+            },
+            "require": {
+                "amphp/amp": "^1"
+            },
+            "require-dev": {
+                "fabpot/php-cs-fixer": "~1.9",
+                "phpunit/phpunit": "^4.8"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    {
+                        "Amp\\Process": "Process.php"
+                    }
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Bob Weinand",
+                    "email": "bobwei9@hotmail.com"
+                }
+            ],
+            "description": "Asynchronous process manager",
+            "homepage": "https://github.com/amphp/process",
+            "time": "2016-09-24T10:49:26+00:00"
+        },
+        {
+            "name": "amphp/socket",
+            "version": "v0.9.9",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/amphp/socket.git",
+                "reference": "722614608c1de7099661187fad4e15c876816db1"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/amphp/socket/zipball/722614608c1de7099661187fad4e15c876816db1",
+                "reference": "722614608c1de7099661187fad4e15c876816db1",
                 "shasum": ""
             },
             "require": {
@@ -467,7 +512,45 @@
                 "tcp",
                 "tls"
             ],
-            "time": "2016-04-06 16:38:57"
+            "time": "2016-07-18T22:03:24+00:00"
+        },
+        {
+            "name": "amphp/windows-registry",
+            "version": "v0.2.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/amphp/windows-registry.git",
+                "reference": "e4420eb368008c8fe81c0b481506306272cc3d21"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/amphp/windows-registry/zipball/e4420eb368008c8fe81c0b481506306272cc3d21",
+                "reference": "e4420eb368008c8fe81c0b481506306272cc3d21",
+                "shasum": ""
+            },
+            "require": {
+                "amphp/amp": "^1.2",
+                "amphp/process": "^0.1.3",
+                "php": ">=5.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Amp\\WindowsRegistry\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Niklas Keller",
+                    "email": "me@kelunik.com"
+                }
+            ],
+            "description": "Windows Registry Reader.",
+            "time": "2017-01-04T23:52:31+00:00"
         },
         {
             "name": "daverandom/libdns",
@@ -500,7 +583,7 @@
             "keywords": [
                 "dns"
             ],
-            "time": "2016-04-29 20:47:45"
+            "time": "2016-04-29T20:47:45+00:00"
         },
         {
             "name": "league/climate",
@@ -551,20 +634,20 @@
                 "php",
                 "terminal"
             ],
-            "time": "2016-04-04 20:24:59"
+            "time": "2016-04-04T20:24:59+00:00"
         },
         {
             "name": "nikic/fast-route",
-            "version": "v0.8.0",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nikic/FastRoute.git",
-                "reference": "5e1f431ed2afe2be5d2bd97fa69b0e99b9ba45e6"
+                "reference": "b5f95749071c82a8e0f58586987627054400cdf6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nikic/FastRoute/zipball/5e1f431ed2afe2be5d2bd97fa69b0e99b9ba45e6",
-                "reference": "5e1f431ed2afe2be5d2bd97fa69b0e99b9ba45e6",
+                "url": "https://api.github.com/repos/nikic/FastRoute/zipball/b5f95749071c82a8e0f58586987627054400cdf6",
+                "reference": "b5f95749071c82a8e0f58586987627054400cdf6",
                 "shasum": ""
             },
             "require": {
@@ -594,7 +677,7 @@
                 "router",
                 "routing"
             ],
-            "time": "2016-03-25 23:46:52"
+            "time": "2017-01-19T11:35:12+00:00"
         },
         {
             "name": "pimple/pimple",
@@ -640,26 +723,34 @@
                 "container",
                 "dependency injection"
             ],
-            "time": "2015-09-11 15:10:35"
+            "time": "2015-09-11T15:10:35+00:00"
         },
         {
             "name": "psr/log",
-            "version": "1.0.0",
+            "version": "1.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-fig/log.git",
-                "reference": "fe0936ee26643249e916849d48e3a51d5f5e278b"
+                "reference": "4ebe3a8bf773a19edfe0a84b6585ba3d401b724d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-fig/log/zipball/fe0936ee26643249e916849d48e3a51d5f5e278b",
-                "reference": "fe0936ee26643249e916849d48e3a51d5f5e278b",
+                "url": "https://api.github.com/repos/php-fig/log/zipball/4ebe3a8bf773a19edfe0a84b6585ba3d401b724d",
+                "reference": "4ebe3a8bf773a19edfe0a84b6585ba3d401b724d",
                 "shasum": ""
             },
+            "require": {
+                "php": ">=5.3.0"
+            },
             "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.0.x-dev"
+                }
+            },
             "autoload": {
-                "psr-0": {
-                    "Psr\\Log\\": ""
+                "psr-4": {
+                    "Psr\\Log\\": "Psr/Log/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -673,12 +764,13 @@
                 }
             ],
             "description": "Common interface for logging libraries",
+            "homepage": "https://github.com/php-fig/log",
             "keywords": [
                 "log",
                 "psr",
                 "psr-3"
             ],
-            "time": "2012-12-21 11:40:51"
+            "time": "2016-10-10T12:19:37+00:00"
         },
         {
             "name": "seld/cli-prompt",
@@ -726,7 +818,7 @@
                 "input",
                 "prompt"
             ],
-            "time": "2016-04-18 09:31:41"
+            "time": "2016-04-18T09:31:41+00:00"
         }
     ],
     "packages-dev": [],
