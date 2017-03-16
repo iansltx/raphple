@@ -3,7 +3,7 @@
 use Aerys\Request;
 use Aerys\Response;
 
-return function(\Pimple\Container $c, \Aerys\Router $app) {
+return function (\Pimple\Container $c, \Aerys\Router $app) {
     // incoming SMS webhooks
 
     $app->route('POST', '/twilio', function (Request $req, Response $res) use ($c) {
@@ -12,15 +12,16 @@ return function(\Pimple\Container $c, \Aerys\Router $app) {
         /** @var \Aerys\ParsedBody $body */
         $body = yield Aerys\parseBody($req, 4096);
 
-        if (yield from $rs->recordEntry($body->get('Body'), $body->get('From')))
+        if (yield from $rs->recordEntry($body->get('Body'), $body->get('From'))) {
             return $res->end("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>
             <Message>Your entry into " . yield from $rs->getNameByCode($body->get('Body')) . " has been received!</Message>
             </Response>");
+        }
 
         return $res->end("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response />");
     });
 
-    $app->route('GET', '/nexmo', functioN(Request $req, Response $res) use ($c) {
+    $app->route('GET', '/nexmo', functioN (Request $req, Response $res) use ($c) {
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
         $from = $req->getParam('msisdn');
@@ -45,14 +46,17 @@ return function(\Pimple\Container $c, \Aerys\Router $app) {
 
         $errors = [];
 
-        if (!strlen($items))
+        if (!strlen($items)) {
             $errors['raffle_name'] = true;
-        if (!strlen($name))
+        }
+        if (!strlen($name)) {
             $errors['raffle_items'] = true;
+        }
 
-        if (count($errors))
+        if (count($errors)) {
             return $c['view']->render($res, 'home.php',
                 ['raffleItems' => $items, 'raffleName' => $name, 'errors' => $errors]);
+        }
 
         $id = yield from $c['raffleService']->create($name, explode("\n", trim($items)));
 
@@ -65,8 +69,9 @@ return function(\Pimple\Container $c, \Aerys\Router $app) {
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
 
-        if (!(yield from $rs->raffleExists($id)))
+        if (!(yield from $rs->raffleExists($id))) {
             return $c['view']->renderNotFound($res);
+        }
 
         if ($req->getParam('show') === 'entrants') {
             $output = ['is_complete' => yield from $rs->isComplete($id)];
@@ -74,16 +79,18 @@ return function(\Pimple\Container $c, \Aerys\Router $app) {
             $numbers = yield from $rs->getEntrantPhoneNumbers($id);
             $output['count'] = count($numbers);
 
-            if ($c['auth']->isAuthorized($req, $id))
+            if ($c['auth']->isAuthorized($req, $id)) {
                 $output['numbers'] = array_map(function ($number) {
                     return 'xxx-xxx-' . substr($number, -4);
                 }, $numbers);
+            }
 
             return $res->end(json_encode($output));
         }
 
-        if (yield from $rs->isComplete($id))
+        if (yield from $rs->isComplete($id)) {
             return $c['view']->render($res, 'finished.php', ['raffleName' => yield from $rs->getName($id)]);
+        }
 
         return $c['view']->render($res, 'waiting.php', [
             'phoneNumber' => $rs->getPhoneNumber($id),
@@ -99,16 +106,19 @@ return function(\Pimple\Container $c, \Aerys\Router $app) {
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
 
-        if (!(yield from $rs->raffleExists($id)))
+        if (!(yield from $rs->raffleExists($id))) {
             return $c['view']->renderNotFound($res);
+        }
 
-        if (!$c['auth']->isAuthorized($req, $id))
+        if (!$c['auth']->isAuthorized($req, $id)) {
             return $res->addHeader('Location', '/')->setStatus(302)->end();
+        }
 
         $data = ['raffleName' => yield from $rs->getName($id)];
 
-        if (!(yield from $rs->isComplete($id)))
+        if (!(yield from $rs->isComplete($id))) {
             $data['winnerNumbers'] = yield from $rs->complete($id);
+        }
 
         return $c['view']->render($res, 'finished.php', $data);
     });

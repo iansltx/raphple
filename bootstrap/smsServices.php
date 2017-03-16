@@ -24,10 +24,10 @@ class TwilioSMS implements SMS
             ->setUri('https://api.twilio.com/2010-04-01/Accounts/' . $this->sid . '/Messages.json')
             ->appendHeader('Authorization', 'Basic ' . base64_encode($this->sid . ':' . $this->token))
             ->setBody(http_build_query([
-                    'To' => $to,
-                    'From' => $this->fromNumber,
-                    'Body' => $text
-                ]))
+                'To' => $to,
+                'From' => $this->fromNumber,
+                'Body' => $text
+            ]))
         );
     }
 }
@@ -48,12 +48,12 @@ class NexmoSMS implements SMS
     public function send($to, $text)
     {
         return (new \Amp\Artax\Client)->request('https://rest.nexmo.com/sms/json?' . http_build_query([
-            'api_key' => $this->key,
-            'api_secret' => $this->secret,
-            'to' => $to,
-            'from' => $this->fromNumber,
-            'text' => $text
-        ]));
+                'api_key' => $this->key,
+                'api_secret' => $this->secret,
+                'to' => $to,
+                'from' => $this->fromNumber,
+                'text' => $text
+            ]));
     }
 }
 
