@@ -27,7 +27,7 @@ return function (\Pimple\Container $c, \Aerys\Router $app) {
         $from = $req->getParam('msisdn');
         $code = $req->getParam('text');
 
-        if (yield from $rs->recordEntry($code, $from)) {
+        if ($code && yield from $rs->recordEntry($code, $from)) {
             $c['sms']->send($from, 'Your entry into ' . (yield from $rs->getNameByCode($code)) . ' has been received!');
         }
         return $res->setStatus(200)->end('Message received.');
