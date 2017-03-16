@@ -1,29 +1,43 @@
 # Raphple
 
-A mobile phone based online raffle system using PHP, MySQL, Slim Framework and Twilio or Nexmo. You can see a live
+A mobile phone based online raffle system using PHP, MySQL, Aerys (from AMPHP) and Twilio or Nexmo. You can see a live
 implementation (using Twilio) as http://raphple.com.
 
 ## Setup (non-Docker)
 
+0. For higher performance, consider installing the `ev` or `php-uv` extensions. See the Dockerfile for how to install
+`php-uv`, assuming a Debian-based system.
 1. Download Composer and install dependencies.
-2. Set your document root to /public, with index.php as the default script.
-3. Set up an SMS provider account (Twilio or Nexmo) and point it to the appropriate webhook, or use a dummy account.
+2. Set up an SMS provider account (Twilio or Nexmo) and point it to the appropriate webhook, or use a dummy account.
 See Setup (SMS) for more details.
-4. Import /schema.sql into a MySQL 5.6+ database.
-5. Set $_SERVER or $_ENV vars for your SMS provider,
-as well as DB_HOST, DB_USER, DB_PASSWORD and DB_NAME vars to connect to your database. If you are
-using nginx, add `fastcgi_param DB_HOST {value};` lines after `include fastcgi_params;` to do this.
+3. Import /schema.sql into a MySQL 5.6+ database.
+4. Set $_ENV vars for your SMS provider, as well as DB_HOST, DB_USER, DB_PASSWORD and DB_NAME vars to 
+connect to your database, and APP_HOST and APP_PORT for how you want to access the web server.
+5. Run `vendor/bin/aerys -d -c public/index.php`
 
 ## Setup (Docker)
 
-You'll still need to do steps 3-5, though for step 5 you'll supply env vars to the container. The included Dockerfile
-includes nginx + php-fpm managed via runit, so once you point your container to your database you'll have everything
-you need.
+You'll still need to do steps 2-4, though for step 5 you'll supply env vars to the container. Once you point your 
+container to your database you'll have everything you need.
 
-For development, comment out everything below VOLUME and uncomment VOLUME in the Dockerfile, then build, so you'll get
-live-syncing of any file changes you make without having to rebuild the container. In a production context, you'll
-want to turn off the volume mount and let the container build all the way (including file copies) for better
-performance and a portable build artifact.
+*NOTE:* Port and host must be what you actually access the container on, and must be explicitly declared in addition
+to Docker port-forwarding.
+
+For development, mount a volume with your code to `/var/app`. Otherwise your code stay at whatever state it was when you
+built your container.
+
+So for a dev build running in the foreground at localhost port 8080 with a dummy SMS wait of 500ms you'd run
+
+```bash
+docker build . -t raphple-aerys
+docker run -p 8080:8080 --name raphple-aerys -v "$PWD":/var/app -e DUMMY_SMS_WAIT_MS=500 \
+-e DB_HOST=hostname -e DB_USER=user -e DB_PASSWORD=password -e DB_NAME=db -e APP_HOST=localhost -e APP_PORT=8080 \
+raphple-aerys
+```
+
+*NOTE:* Unlike a standard PHP application, once the container is running, modifying code, even via a volume mount, won't
+change what runs; once the web server reads in a given file, it's in memory until the server process/container is
+terminated.
 
 ## Setup (SMS)
 

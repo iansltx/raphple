@@ -5,6 +5,6 @@ const AERYS_OPTIONS = [
 ];
 
 $container = call_user_func(require __DIR__ . '/../bootstrap/services.php', new Pimple\Container(), $_SERVER + $_ENV);
-(new Aerys\Host)->expose("*", 8000)->name('raphple.ngrok.io')
+(new Aerys\Host)->expose("*", $_ENV['APP_PORT'])->name($_ENV['APP_HOST'])
     ->use(call_user_func(require __DIR__ . '/../bootstrap/routes.php', $container, Aerys\router())) // routes
     ->use(Aerys\root(__DIR__)); // static file serving
