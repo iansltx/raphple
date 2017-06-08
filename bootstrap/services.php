@@ -133,9 +133,12 @@ class Auth
 
 return function(\Slim\Container $container, $env) {
     $container['view'] = function() {return new View(__DIR__ . '/../templates');};
+
+    $formattedPhoneNumber = preg_replace('~.*(\d{3})[^\d]{0,7}(\d{3})[^\d]{0,7}(\d{4}).*~', '($1) $2-$3', $env['PHONE_NUMBER']). "\n";
+
     $container['raffleService'] = function($c) use ($env) {return new RaffleService(
         new \Aura\Sql\ExtendedPdo('mysql:host=' . $env['DB_HOST'] . ';dbname=' . $env['DB_NAME'],
-            $env['DB_USER'], $env['DB_PASSWORD']), $c['sms'], $env['PHONE_NUMBER']
+            $env['DB_USER'], $env['DB_PASSWORD']), $c['sms'], $formattedPhoneNumber
     );};
     $container['auth'] = function(\Slim\Container $c) {return new Auth($c->get('raffleService'));};
 
