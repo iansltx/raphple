@@ -1,7 +1,7 @@
 FROM php:7.1-cli
 
 # install php-uv
-RUN apt-get update && apt-get install -y git automake libtool gcc zlib1g-dev && \
+RUN apt-get update && apt-get install -y git automake libtool gcc zlib1g-dev libzip-dev && \
 git clone https://github.com/bwoebi/php-uv.git /var/php-uv --recursive && cd /var/php-uv && \
 mkdir libuv && curl -L https://github.com/libuv/libuv/archive/v1.11.0.tar.gz | tar xzf - && \
 cd /var/php-uv/libuv-1.11.0 && ./autogen.sh && ./configure --prefix=$(readlink -f `pwd`/../libuv) && \
