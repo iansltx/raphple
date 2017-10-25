@@ -1,5 +1,7 @@
 <?php
 
+use Amp\Artax\Request;
+
 interface SMS
 {
     public function send($to, $text);
@@ -20,10 +22,10 @@ class TwilioSMS implements SMS
 
     public function send($to, $text)
     {
-        return (new \Amp\Artax\Client)->request((new \Amp\Artax\Request())->setMethod('POST')
-            ->setUri('https://api.twilio.com/2010-04-01/Accounts/' . $this->sid . '/Messages.json')
-            ->appendHeader('Authorization', 'Basic ' . base64_encode($this->sid . ':' . $this->token))
-            ->setBody(http_build_query([
+        return (new \Amp\Artax\DefaultClient)->request(
+            (new Request('https://api.twilio.com/2010-04-01/Accounts/' . $this->sid . '/Messages.json', 'POST'))
+            ->withHeader('Authorization', 'Basic ' . base64_encode($this->sid . ':' . $this->token))
+            ->withBody(http_build_query([
                 'To' => $to,
                 'From' => $this->fromNumber,
                 'Body' => $text
@@ -45,9 +47,14 @@ class NexmoSMS implements SMS
         $this->fromNumber = $fromNumber;
     }
 
+    /**
+     * @param $to
+     * @param $text
+     * @return \Amp\Promise
+     */
     public function send($to, $text)
     {
-        return (new \Amp\Artax\Client)->request('https://rest.nexmo.com/sms/json?' . http_build_query([
+        return (new \Amp\Artax\DefaultClient)->request('https://rest.nexmo.com/sms/json?' . http_build_query([
                 'api_key' => $this->key,
                 'api_secret' => $this->secret,
                 'to' => $to,

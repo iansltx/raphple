@@ -1,6 +1,6 @@
 {
   "name": "iansltx/raphple",
-  "description": "PHP Raffler with Twilio",
+  "description": "PHP Raffler with Twilio + Nexmo",
   "license": "BSD-2-Clause",
   "authors": [
     {
@@ -9,9 +9,9 @@
     }
   ],
   "require": {
-    "amphp/aerys": "^0.4.7",
-    "pimple/pimple": "^3.0.2",
-    "amphp/mysql": "0.1.3",
-    "amphp/artax": "^2.0.5"
+    "amphp/aerys": "^0.7.0",
+    "pimple/pimple": "^3.2.2",
+    "amphp/mysql": "0.2.3",
+    "amphp/artax": "^3.0.12"
   }
 }

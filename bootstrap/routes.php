@@ -73,13 +73,14 @@ return function (\Pimple\Container $c, \Aerys\Router $app) {
             return $c['view']->renderNotFound($res);
         }
 
+        $numbers = yield from $rs->getEntrantPhoneNumbers($id);
+
         if ($req->getParam('show') === 'entrants') {
             $output = ['is_complete' => yield from $rs->isComplete($id)];
 
-            $numbers = yield from $rs->getEntrantPhoneNumbers($id);
             $output['count'] = count($numbers);
 
-            if ($c['auth']->isAuthorized($req, $id)) {
+            if (yield from $c['auth']->isAuthorized($req, $id)) {
                 $output['numbers'] = array_map(function ($number) {
                     return 'xxx-xxx-' . substr($number, -4);
                 }, $numbers);
@@ -91,12 +92,14 @@ return function (\Pimple\Container $c, \Aerys\Router $app) {
         if (yield from $rs->isComplete($id)) {
             return $c['view']->render($res, 'finished.php', ['raffleName' => yield from $rs->getName($id)]);
         }
+        if (!(yield from $c['auth']->isAuthorized($req, $id))) {
+            $numbers = null;
+        }
 
         return $c['view']->render($res, 'waiting.php', [
             'phoneNumber' => $rs->getPhoneNumber($id),
             'code' => $rs->getCode($id),
-            'entrantNumbers' => $c['auth']->isAuthorized($req, $id) ?
-                yield from $rs->getEntrantPhoneNumbers($id) : null,
+            'entrantNumbers' => $numbers,
             'entrantCount' => yield from $rs->getEntrantCount($id)
         ]);
     });

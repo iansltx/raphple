@@ -172,7 +172,7 @@ class RaffleService
     {
         /** @var \Amp\Mysql\ResultSet $existenceRs */
         $existenceRs = yield $this->db->prepare('SELECT COUNT(*) FROM raffle WHERE id = ?', [$id]);
-        return (yield $existenceRs->fetchRow()) > 0;
+        return (yield $existenceRs->fetchRow())[0] > 0;
     }
 }
 

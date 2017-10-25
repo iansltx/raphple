@@ -22,7 +22,7 @@ Note that the above command starts the server in debug (verbose) mode. Remove th
 You'll still need to do steps 2-4, though for step 5 you'll supply env vars to the container. Once you point your 
 container to your database you'll have everything you need.
 
-*NOTE:* Port and host must be what you actually access the container on, and must be explicitly declared in addition
+*NOTE:* Port must be what you actually access the container on, and must be explicitly declared in addition
 to Docker port-forwarding.
 
 For development, mount a volume with your code to `/var/app`. Otherwise your code stay at whatever state it was when you
@@ -32,7 +32,7 @@ So for a dev build running in the foreground on port 8080 with a dummy SMS wait 
 
 ```bash
 docker build . -t raphple-aerys
-docker run -p 8080:8080 --name raphple-aerys -v "$PWD":/var/app -e DUMMY_SMS_WAIT_MS=500 \
+docker run -p 8080:8080 -v "$PWD":/var/app -e DUMMY_SMS_WAIT_MS=500 \
 -e DB_HOST=hostname -e DB_USER=user -e DB_PASSWORD=password -e DB_NAME=db -e APP_PORT=8080 raphple-aerys
 ```
 
@@ -53,7 +53,9 @@ texts.
 
 You can choose instead to stub out outbound SMSes. Either of the two webhooks will still respond, but no SMSes will
 be sent. As part of the dummy SMS provider, an arbitrary wait, in milliseconds, is injected on each fake message
-send event (you can set this to zero if you want). Messages that would have been sent will be logged to STDERR.
+send event (you can set this to zero if you want). Messages that would have been sent will be logged to STDERR. Unlike
+the Twilio and Nexmo handlers, the dummy handler blocks execution across the board, otherwise you wouldn't see the
+delay actually happening.
 
 | Provider | Env Vars | Webhook Endpoint |
 | --- | --- | --- |
