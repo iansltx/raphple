@@ -5,6 +5,25 @@ interface SMS
     public function send($to, $text);
 }
 
+class DeferredSMS implements SMS
+{
+    protected $actual;
+    protected $queue;
+
+    public function __construct(SMS $actual, TaskQueue $queue)
+    {
+        $this->actual = $actual;
+        $this->queue = $queue;
+    }
+
+    public function send($to, $text)
+    {
+        $this->queue->push(function() use ($to, $text) {
+            $this->actual->send($to, $text);
+        });
+    }
+}
+
 class TwilioSMS implements SMS
 {
     protected $sid;

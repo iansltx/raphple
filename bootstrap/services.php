@@ -131,6 +131,28 @@ class Auth
     }
 }
 
+class TaskQueue implements Countable
+{
+    protected $tasks = [];
+
+    public function push($task)
+    {
+        $this->tasks[] = $task;
+    }
+
+    public function count()
+    {
+        return count($this->tasks);
+    }
+
+    public function __invoke()
+    {
+        foreach ($this->tasks as $task) {
+            $task();
+        }
+    }
+}
+
 return function(\Slim\Container $container, $env) {
     $container['view'] = function() {return new View(__DIR__ . '/../templates');};
     $container['raffleService'] = function($c) use ($env) {return new RaffleService(
@@ -139,17 +161,23 @@ return function(\Slim\Container $container, $env) {
     );};
     $container['auth'] = function(\Slim\Container $c) {return new Auth($c->get('raffleService'));};
 
-    $container['sms'] = function() use ($env) {
-        if (isset($env['TWILIO_SID'])) {
-            return new TwilioSMS($env['TWILIO_SID'], $env['TWILIO_TOKEN'], $env['PHONE_NUMBER']);
-        }
-        if (isset($env['NEXMO_KEY'])) {
-            return new NexmoSMS($env['NEXMO_KEY'], $env['NEXMO_SECRET'], $env['PHONE_NUMBER']);
-        }
-        if (isset($env['DUMMY_SMS_WAIT_MS'])) {
+    $container['taskQueue'] = function() { return new TaskQueue(); };
+
+    $container['sms'] = function($c) use ($env) {
+        if (isset($env['DUMMY_SMS_WAIT_MS'])) { // not deferring because error_log is turned off after fcgi disconnects
             return new DummySMS($env['DUMMY_SMS_WAIT_MS']);
         }
-        throw new InvalidArgumentException('Could not find SMS service creds, and a dummy timeout was not supplied.');
+
+        return new DeferredSMS((function($env) : SMS
+        {
+            if (isset($env['TWILIO_SID'])) {
+                return new TwilioSMS($env['TWILIO_SID'], $env['TWILIO_TOKEN'], $env['PHONE_NUMBER']);
+            }
+            if (isset($env['NEXMO_KEY'])) {
+                return new NexmoSMS($env['NEXMO_KEY'], $env['NEXMO_SECRET'], $env['PHONE_NUMBER']);
+            }
+            throw new InvalidArgumentException('Could not find SMS service creds, and a dummy timeout was not supplied.');
+        })($env), $c['taskQueue']);
     };
 
     $container['addCookieToResponse'] = $container->protect(function(Response $res, $name, $properties) {
