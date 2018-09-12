@@ -1,7 +1,7 @@
 <div class="container">
     <hr>
     <footer>
-        <p>&copy; @iansltx 2015</p>
+        <p>&copy; @iansltx <?= date('Y') ?></p>
     </footer>
 </div> <!-- /container -->
 
