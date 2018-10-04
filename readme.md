@@ -5,42 +5,38 @@ implementation (using Twilio) as http://raphple.com.
 
 ## Setup (non-Docker)
 
-0. For higher performance, consider installing the `ev` or `php-uv` extensions. See the Dockerfile for how to install
-`php-uv`, assuming a Debian-based system.
+0. For higher performance, consider installing the `libevent`, `ev`, or `php-uv` extensions. The included Dockerfile
+uses `uv`.
 1. Download Composer and install dependencies.
 2. Set up an SMS provider account (Twilio or Nexmo) and point it to the appropriate webhook, or use a dummy account.
 See Setup (SMS) for more details.
 3. Import /schema.sql into a MySQL 5.6+ database.
 4. Set $_ENV vars for your SMS provider, as well as DB_HOST, DB_USER, DB_PASSWORD and DB_NAME vars to 
 connect to your database, and APP_PORT for how you want to access the web server.
-5. Run `vendor/bin/aerys -d -c public/index.php`
-
-Note that the above command starts the server in debug (verbose) mode. Remove the `-d` flag to start in non-debug mode.
+5. Run `vendor/bin/cluster public/index.php`
 
 ## Setup (Docker)
 
-You'll still need to do steps 2-4, though for step 5 you'll supply env vars to the container. Once you point your 
+You'll still need to do steps 2-3, though for step 4 you'll supply env vars to the container. Once you point your 
 container to your database you'll have everything you need.
 
 *NOTE:* Port must be what you actually access the container on, and must be explicitly declared in addition
 to Docker port-forwarding.
 
-For development, mount a volume with your code to `/var/app`. Otherwise your code stay at whatever state it was when you
-built your container.
+For development, mount a volume with your code to `/var/app`. Otherwise your code will stay at whatever state it was
+when you built your container.
 
 So for a dev build running in the foreground on port 8080 with a dummy SMS wait of 500ms you'd run
 
 ```bash
-docker build . -t raphple-aerys
+docker build . -t raphple-amp
 docker run -p 8080:8080 -v "$PWD":/var/app -e DUMMY_SMS_WAIT_MS=500 \
--e DB_HOST=hostname -e DB_USER=user -e DB_PASSWORD=password -e DB_NAME=db -e APP_PORT=8080 raphple-aerys
+-e DB_HOST=hostname -e DB_USER=user -e DB_PASSWORD=password -e DB_NAME=db -e APP_PORT=8080 raphple-amp
 ```
 
 *NOTE:* Unlike a standard PHP application, once the container is running, modifying code, even via a volume mount, won't
 change what runs; once the web server reads in a given file, it's in memory until the server process/container is
 terminated.
-
-The container starts in debug mode by default; set a custom entrypoint to start in non-debug mode.
 
 ## Setup (SMS)
 
