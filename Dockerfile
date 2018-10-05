@@ -3,7 +3,7 @@ FROM php:7.2-cli-alpine
 # install php-uv and zip
 RUN apk add --no-cache git libuv-dev zlib-dev && \
 git clone https://github.com/bwoebi/php-uv.git /tmp/php-uv --recursive && \
-docker-php-ext-install /tmp/php-uv zip
+docker-php-ext-install /tmp/php-uv zip pcntl
 
 # Install Composer
 RUN curl https://getcomposer.org/composer.phar > /usr/sbin/composer
