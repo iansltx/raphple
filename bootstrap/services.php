@@ -1,6 +1,7 @@
 <?php
 
 use Amp\Http\Server\Response;
+use Amp\Mysql\ResultSet;
 
 require __DIR__ . '/smsServices.php';
 
@@ -81,9 +82,9 @@ class RaffleService
      */
     public function getEntrantCount($id)
     {
-        /** @var \Amp\Mysql\ResultSet $resultSet */
+        /** @var ResultSet $resultSet */
         $resultSet = yield $this->db->execute('SELECT COUNT(*) FROM entrant WHERE raffle_id = ?', [$id]);
-        yield $resultSet->advance(\Amp\Mysql\ResultSet::FETCH_ARRAY);
+        yield $resultSet->advance(ResultSet::FETCH_ARRAY);
         return $resultSet->getCurrent()[0];
     }
 
@@ -106,9 +107,9 @@ class RaffleService
      */
     public function isComplete($id)
     {
-        /** @var \Amp\Mysql\ResultSet $resultSet */
+        /** @var ResultSet $resultSet */
         $resultSet = yield $this->db->execute('SELECT COUNT(*) FROM raffle WHERE is_complete = 1 && id = ?', [$id]);
-        yield $resultSet->advance(\Amp\Mysql\ResultSet::FETCH_ARRAY);
+        yield $resultSet->advance(ResultSet::FETCH_ARRAY);
         return $resultSet->getCurrent()[0];
     }
 
@@ -121,9 +122,9 @@ class RaffleService
      */
     public function getName($id)
     {
-        /** @var \Amp\Mysql\ResultSet $resultSet */
+        /** @var ResultSet $resultSet */
         $resultSet = yield $this->db->execute('SELECT raffle_name FROM raffle WHERE id = ?', [$id]);
-        yield $resultSet->advance(\Amp\Mysql\ResultSet::FETCH_ARRAY);
+        yield $resultSet->advance(ResultSet::FETCH_ARRAY);
         return $resultSet->getCurrent()[0];
     }
 
@@ -148,37 +149,56 @@ class RaffleService
      */
     public function getSid($id)
     {
-        /** @var \Amp\Mysql\ResultSet $resultSet */
+        /** @var ResultSet $resultSet */
         $resultSet = yield $this->db->execute('SELECT sid FROM raffle WHERE id = ?', [$id]);
 
-        return yield $resultSet->advance(\Amp\Mysql\ResultSet::FETCH_ARRAY) ? $resultSet->getCurrent()[0] : null;
+        return yield $resultSet->advance(ResultSet::FETCH_ARRAY) ? $resultSet->getCurrent()[0] : null;
     }
 
+    /**
+     * @param $id
+     * @return array
+     * @throws \Amp\Mysql\ConnectionException
+     * @throws \Amp\Mysql\FailureException
+     * @throws Throwable
+     */
     public function getEntrantPhoneNumbers($id)
     {
-        /** @var \Amp\Mysql\ResultSet $resultSet */
-        $resultSet = yield $this->db->prepare('SELECT phone_number FROM entrant WHERE raffle_id = ?', [$id]);
-        $rows = yield $resultSet->fetchRows();
-        return array_column($rows, 0);
+        /** @var ResultSet $resultSet */
+        $resultSet = yield $this->db->execute('SELECT phone_number FROM entrant WHERE raffle_id = ?', [$id]);
+        $phoneNumbers = [];
+        while (yield $resultSet->advance(ResultSet::FETCH_ARRAY)) {
+            $phoneNumbers[] = $resultSet->getCurrent()[0];
+        }
+
+        return $phoneNumbers;
     }
 
+    /**
+     * @param $id
+     * @return array|Generator
+     * @throws \Amp\Mysql\ConnectionException
+     * @throws \Amp\Mysql\FailureException
+     * @throws Throwable
+     */
     public function complete($id)
     {
-        yield $this->db->prepare('UPDATE raffle SET is_complete = 1 WHERE id = ?', [$id]);
+        yield $this->db->execute('UPDATE raffle SET is_complete = 1 WHERE id = ?', [$id]);
 
-        /** @var \Amp\Mysql\ResultSet[] $resultSets */
-        $resultSets = yield Amp\all([
-            $this->db->prepare('SELECT item FROM raffle_item WHERE raffle_id = ? ORDER BY id ASC', [$id]),
-            $this->db->prepare('SELECT phone_number FROM entrant WHERE raffle_id = ?', [$id])
-        ]);
+        /** @var ResultSet $resultSets */
+        $resultSets = yield $this->db->execute('SELECT item FROM raffle_item WHERE raffle_id = ? ORDER BY id ASC;'.
+                'SELECT phone_number FROM entrant WHERE raffle_id = ?;', [$id, $id]);
 
-        $rowSets = yield Amp\all([
-            $resultSets[0]->fetchRows(),
-            $resultSets[1]->fetchRows()
-        ]);
+        $items = [];
+        while (yield $resultSets->advance(ResultSet::FETCH_ARRAY)) {
+            $items[] = $resultSets->getCurrent()[0];
+        }
 
-        $items = array_column($rowSets[0], 0);
-        $entrants = array_column($rowSets[1], 0);
+        yield $resultSets->nextResultSet();
+        $entrants = [];
+        while (yield $resultSets->advance(ResultSet::FETCH_ARRAY)) {
+            $entrants[] = $resultSets->getCurrent()[0];
+        }
 
         shuffle($entrants);
 
@@ -198,30 +218,45 @@ class RaffleService
         return $winnerNumbers;
     }
 
+    /**
+     * @param $code
+     * @param $phone_number
+     * @return bool|Generator
+     * @throws \Amp\Mysql\ConnectionException
+     * @throws \Amp\Mysql\FailureException
+     * @throws Throwable
+     */
     public function recordEntry($code, $phone_number)
     {
         if (!(yield from $this->raffleExists($code))) {
             return false;
         }
 
-        /** @var \Amp\Mysql\ResultSet $entrantCtRs */
-        $entrantCtRs = yield $this->db->prepare('SELECT COUNT(*) FROM entrant WHERE raffle_id = ? && phone_number = ?',
+        /** @var ResultSet $entrantCtRs */
+        $entrantCtRs = yield $this->db->execute('SELECT COUNT(*) FROM entrant WHERE raffle_id = ? && phone_number = ?',
             [$code, $phone_number]);
-        $entrantCtRow = yield $entrantCtRs->fetchRow();
-
-        if ($entrantCtRow[0]) {
+        yield $entrantCtRs->advance(ResultSet::FETCH_ARRAY);
+        if ($entrantCtRs->getCurrent()[0]) {
             return false;
         }
 
-        yield $this->db->prepare('INSERT INTO entrant (raffle_id, phone_number) VALUES (?, ?)', [$code, $phone_number]);
+        $this->db->execute('INSERT INTO entrant (raffle_id, phone_number) VALUES (?, ?)', [$code, $phone_number]);
         return true;
     }
 
+    /**
+     * @param $id
+     * @return bool
+     * @throws \Amp\Mysql\ConnectionException
+     * @throws \Amp\Mysql\FailureException
+     * @throws Throwable
+     */
     public function raffleExists($id)
     {
-        /** @var \Amp\Mysql\ResultSet $existenceRs */
-        $existenceRs = yield $this->db->prepare('SELECT COUNT(*) FROM raffle WHERE id = ?', [$id]);
-        return (yield $existenceRs->fetchRow())[0] > 0;
+        /** @var ResultSet $existenceRs */
+        $existenceRs = yield $this->db->execute('SELECT COUNT(*) FROM raffle WHERE id = ?', [$id]);
+        yield $existenceRs->advance(ResultSet::FETCH_ARRAY);
+        return $existenceRs->getCurrent()[0] > 0;
     }
 }
 
