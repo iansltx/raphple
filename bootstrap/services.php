@@ -1,7 +1,6 @@
 <?php
 
-use Aerys\Request;
-use Aerys\Response;
+use Amp\Http\Server\Response;
 
 require __DIR__ . '/smsServices.php';
 
@@ -19,12 +18,14 @@ class View
         extract($data, EXTR_SKIP);
         ob_start();
         require $this->templateDir . '/' . $filename;
-        return $res->end(ob_get_clean());
+        $res->setBody(ob_get_clean());
+        return $res;
     }
 
     public function renderNotFound(Response $res)
     {
-        return $this->render($res->setStatus(404), 'not_found.php');
+        $res->setStatus(404);
+        return $this->render($res, 'not_found.php');
     }
 }
 
@@ -41,29 +42,49 @@ class RaffleService
         $this->phoneNumber = $phone_number;
     }
 
+    /**
+     * @param $name
+     * @param array $items
+     * @return Generator
+     * @throws \Amp\Mysql\ConnectionException
+     * @throws \Amp\Mysql\FailureException
+     */
     public function create($name, array $items)
     {
         $sid = uniqid();
+
         /** @var \Amp\Mysql\Connection $conn */
-        $conn = yield $this->db->getConnection(); // need a stateful connection for this call
-        yield $conn->prepare('INSERT INTO raffle (raffle_name, sid) VALUES(?, ?)', [$name, $sid]);
+        $conn = $this->db->extractConnection();
+
+        yield $conn->execute('INSERT INTO raffle (raffle_name, sid) VALUES(?, ?)', [$name, $sid]);
+
         $id = $conn->getConnInfo()->insertId;
-        /** @var \Amp\Mysql\Stmt $itemsStmt */
-        $itemsStmt = yield $conn->prepare('INSERT INTO raffle_item (raffle_id, item) VALUES(?, ?)');
-        foreach ($items as $item) {
-            yield $itemsStmt->execute([$id, $item]);
+
+        $conn->close();
+
+        /** @var \Amp\Mysql\Statement $itemsStmt */
+        $itemsStmt = yield $this->db->prepare('INSERT INTO raffle_item (raffle_id, item) VALUES(?, ?)');
+
+        foreach ($items as $item) { // queue up inserts, but we don't care when they happen
+            $itemsStmt->execute([$id, $item]);
         }
+
         return $id;
     }
 
+    /**
+     * @param $id
+     * @return mixed
+     * @throws \Amp\Mysql\ConnectionException
+     * @throws \Amp\Mysql\FailureException
+     * @throws Throwable
+     */
     public function getEntrantCount($id)
     {
-        /** @var \Amp\Mysql\Stmt $stmt */
-        $stmt = yield $this->db->prepare('SELECT COUNT(*) FROM entrant WHERE raffle_id = ?');
         /** @var \Amp\Mysql\ResultSet $resultSet */
-        $resultSet = yield $stmt->execute([$id]);
-        $row = yield $resultSet->fetchRow();
-        return $row[0];
+        $resultSet = yield $this->db->execute('SELECT COUNT(*) FROM entrant WHERE raffle_id = ?', [$id]);
+        yield $resultSet->advance(\Amp\Mysql\ResultSet::FETCH_ARRAY);
+        return $resultSet->getCurrent()[0];
     }
 
     public function getPhoneNumber($id)
@@ -76,33 +97,61 @@ class RaffleService
         return $id;
     }
 
+    /**
+     * @param $id
+     * @return bool
+     * @throws \Amp\Mysql\ConnectionException
+     * @throws \Amp\Mysql\FailureException
+     * @throws Throwable
+     */
     public function isComplete($id)
     {
         /** @var \Amp\Mysql\ResultSet $resultSet */
-        $resultSet = yield $this->db->prepare('SELECT COUNT(*) FROM raffle WHERE is_complete = 1 && id = ?', [$id]);
-        $row = yield $resultSet->fetchRow();
-        return $row[0] > 0;
+        $resultSet = yield $this->db->execute('SELECT COUNT(*) FROM raffle WHERE is_complete = 1 && id = ?', [$id]);
+        yield $resultSet->advance(\Amp\Mysql\ResultSet::FETCH_ARRAY);
+        return $resultSet->getCurrent()[0];
     }
 
+    /**
+     * @param $id
+     * @return Generator
+     * @throws Throwable
+     * @throws \Amp\Mysql\ConnectionException
+     * @throws \Amp\Mysql\FailureException
+     */
     public function getName($id)
     {
         /** @var \Amp\Mysql\ResultSet $resultSet */
-        $resultSet = yield $this->db->prepare('SELECT raffle_name FROM raffle WHERE id = ?', [$id]);
-        $row = yield $resultSet->fetchRow();
-        return $row[0];
+        $resultSet = yield $this->db->execute('SELECT raffle_name FROM raffle WHERE id = ?', [$id]);
+        yield $resultSet->advance(\Amp\Mysql\ResultSet::FETCH_ARRAY);
+        return $resultSet->getCurrent()[0];
     }
 
+    /**
+     * @param $code
+     * @return Generator
+     * @throws Throwable
+     * @throws \Amp\Mysql\ConnectionException
+     * @throws \Amp\Mysql\FailureException
+     */
     public function getNameByCode($code)
     {
         return $this->getName($code);
     }
 
+    /**
+     * @param $id
+     * @return mixed
+     * @throws \Amp\Mysql\ConnectionException
+     * @throws \Amp\Mysql\FailureException
+     * @throws Throwable
+     */
     public function getSid($id)
     {
         /** @var \Amp\Mysql\ResultSet $resultSet */
-        $resultSet = yield $this->db->prepare('SELECT sid FROM raffle WHERE id = ?', [$id]);
-        $row = yield $resultSet->fetchRow();
-        return $row[0];
+        $resultSet = yield $this->db->execute('SELECT sid FROM raffle WHERE id = ?', [$id]);
+
+        return yield $resultSet->advance(\Amp\Mysql\ResultSet::FETCH_ARRAY) ? $resultSet->getCurrent()[0] : null;
     }
 
     public function getEntrantPhoneNumbers($id)
@@ -185,10 +234,19 @@ class Auth
         $this->rs = $rs;
     }
 
-    public function isAuthorized(Request $req, $id)
+    /**
+     * @param \Amp\Http\Server\Request $req
+     * @param $id
+     * @return bool
+     * @throws Throwable
+     * @throws \Amp\Mysql\ConnectionException
+     * @throws \Amp\Mysql\FailureException
+     */
+    public function isAuthorized(\Amp\Http\Server\Request $req, $id)
     {
         $sid = yield from $this->rs->getSid($id);
-        return $sid === $req->getCookie('sid' . $id) || $sid === $req->getParam('sid');
+        parse_str($req->getUri()->getQuery(), $query);
+        return $sid === $req->getCookie('sid' . $id) || $sid === ($query['sid'] ?? false);
     }
 }
 
@@ -197,7 +255,7 @@ return function (\Pimple\Container $container, $env) {
         return new View(__DIR__ . '/../templates');
     };
     $container['raffleService'] = function ($c) use ($env) {
-        return new RaffleService(new \Amp\Mysql\Pool('host=' . $env['DB_HOST'] . ';db=' . $env['DB_NAME'] .
+        return new RaffleService(Amp\Mysql\pool('host=' . $env['DB_HOST'] . ';db=' . $env['DB_NAME'] .
             ";user=" . $env['DB_USER'] . ";pass=" . $env['DB_PASSWORD']), $c['sms'], $env['PHONE_NUMBER']);
     };
     $container['auth'] = function (\Pimple\Container $c) {

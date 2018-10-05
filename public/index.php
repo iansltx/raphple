@@ -4,6 +4,7 @@ use Amp\Http\Server\Request;
 use Amp\Http\Server\RequestHandler\CallableRequestHandler;
 use Amp\Http\Server\Response;
 use Amp\Http\Server\Server;
+use Amp\Http\Server\StaticContent\DocumentRoot;
 use Amp\Http\Status;
 
 Amp\Loop::run(function() {
@@ -22,7 +23,13 @@ Amp\Loop::run(function() {
     }), $logger);
     yield $server->start();
 
-    // TODO add routes
+    $router = new Amp\Http\Server\Router;
+
+    call_user_func(require __DIR__ . '/../bootstrap/routes.php',
+        call_user_func(require __DIR__ . '/../bootstrap/services.php', new Pimple\Container(), $_SERVER + $_ENV),
+        $router);
+
+    $router->setFallback(new DocumentRoot(__DIR__));
 
     // Stop the server when SIGINT is received (this is technically optional, but it is best to call Server::stop()).
     Amp\Loop::onSignal(SIGINT, function (string $watcherId) use ($server) {
@@ -30,10 +37,3 @@ Amp\Loop::run(function() {
         yield $server->stop();
     });
 });
-/*
-return (new Aerys\Host)->expose("*", $_ENV['APP_PORT'])
-    ->use(call_user_func(require __DIR__ . '/../bootstrap/routes.php',
-            call_user_func(require __DIR__ . '/../bootstrap/services.php', new Pimple\Container(), $_SERVER + $_ENV),
-        Aerys\router())) // routes
-    ->use(Aerys\root(__DIR__)); // static file serving
-*/

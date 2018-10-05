@@ -1,48 +1,59 @@
 <?php
 
-use Aerys\Request;
-use Aerys\Response;
+use Amp\Http\Server\FormParser\Form;
+use Amp\Http\Server\Request;
+use Amp\Http\Server\RequestHandler\CallableRequestHandler;
+use Amp\Http\Server\Response;
+use function Amp\Http\Server\FormParser\parseForm;
 
-return function (\Pimple\Container $c, \Aerys\Router $app) {
+return function (\Pimple\Container $c, \Amp\Http\Server\Router $app) {
     // incoming SMS webhooks
 
-    $app->route('POST', '/twilio', function (Request $req, Response $res) use ($c) {
+    $app->addRoute('POST', '/twilio', new CallableRequestHandler(function (Request $req, Response $res) use ($c) {
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
-        /** @var \Aerys\ParsedBody $body */
-        $body = yield Aerys\parseBody($req, 4096);
 
-        if (yield from $rs->recordEntry($body->get('Body'), $body->get('From'))) {
-            return $res->end("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>
-            <Message>Your entry into " . yield from $rs->getNameByCode($body->get('Body')) . " has been received!</Message>
-            </Response>");
+        /** @var Form $form */
+        $form = yield parseForm($req);
+
+        if (yield from $rs->recordEntry($form->getValue('Body'), $form->getValue('From'))) {
+            $res->setBody("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>
+            <Message>Your entry into " . (yield from $rs->getNameByCode($form->getValue('Body'))) .
+                " has been received!</Message></Response>");
+        } else {
+            $res->setBody("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response />");
         }
+        return $res;
+    }));
 
-        return $res->end("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response />");
-    });
-
-    $app->route('GET', '/nexmo', functioN (Request $req, Response $res) use ($c) {
+    $app->addRoute('GET', '/nexmo', new CallableRequestHandler(functioN (Request $req, Response $res) use ($c) {
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
-        $from = $req->getParam('msisdn');
-        $code = $req->getParam('text');
+
+        parse_str($req->getUri()->getQuery(), $query);
+
+        $from = $query['msisdn'];
+        $code = $query['text'];
 
         if ($code && yield from $rs->recordEntry($code, $from)) {
             $c['sms']->send($from, 'Your entry into ' . (yield from $rs->getNameByCode($code)) . ' has been received!');
         }
-        return $res->setStatus(200)->end('Message received.');
-    });
+        $res->setBody('Message received.');
+
+        return $res;
+    }));
 
     // end of webhooks
 
-    $app->route('GET', '/', function (Request $req, Response $res) use ($c) {
+    $app->addRoute('GET', '/', new CallableRequestHandler(function (Request $req, Response $res) use ($c) {
         return $c['view']->render($res, 'home.php');
-    });
+    }));
 
-    $app->route('POST', '/', function (Request $req, Response $res) use ($c) {
-        $body = yield Aerys\parseBody($req, 4096);
-        $items = trim($body->get('raffle_items'));
-        $name = trim($body->get('raffle_name'));
+    $app->addRoute('POST', '/', new CallableRequestHandler(function (Request $req, Response $res) use ($c) {
+        /** @var Form $form */
+        $form = yield parseForm($req);
+        $items = trim($form->getValue('raffle_items'));
+        $name = trim($form->getValue('raffle_name'));
 
         $errors = [];
 
@@ -60,11 +71,13 @@ return function (\Pimple\Container $c, \Aerys\Router $app) {
 
         $id = yield from $c['raffleService']->create($name, explode("\n", trim($items)));
 
-        $res->addHeader('Location', '/' . $id)->setCookie('sid' . $id, yield from $c['raffleService']->getSid($id))
-            ->setStatus(302)->end();
-    });
+        $res->addHeader('Location', '/' . $id);
+        $res->setCookie(new \Amp\Http\Cookie\ResponseCookie('sid' . $id, yield from $c['raffleService']->getSid($id)));
+        $res->setStatus(302);
+        return $res;
+    }));
 
-    $app->route('GET', '/{id}', function (Request $req, Response $res, array $args) use ($c) {
+    $app->addRoute('GET', '/{id}', new CallableRequestHandler(function (Request $req, Response $res, array $args) use ($c) {
         $id = $args['id'];
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
@@ -75,7 +88,9 @@ return function (\Pimple\Container $c, \Aerys\Router $app) {
 
         $numbers = yield from $rs->getEntrantPhoneNumbers($id);
 
-        if ($req->getParam('show') === 'entrants') {
+        parse_str($req->getUri()->getQuery(), $query);
+
+        if ($query['show'] === 'entrants') {
             $output = ['is_complete' => yield from $rs->isComplete($id)];
 
             $output['count'] = count($numbers);
@@ -86,7 +101,8 @@ return function (\Pimple\Container $c, \Aerys\Router $app) {
                 }, $numbers);
             }
 
-            return $res->end(json_encode($output));
+            $res->setBody(json_encode($output));
+            return $res;
         }
 
         if (yield from $rs->isComplete($id)) {
@@ -102,9 +118,9 @@ return function (\Pimple\Container $c, \Aerys\Router $app) {
             'entrantNumbers' => $numbers,
             'entrantCount' => yield from $rs->getEntrantCount($id)
         ]);
-    });
+    }));
 
-    $app->route('POST', '/{id}', function (Request $req, Response $res, array $args) use ($c) {
+    $app->addRoute('POST', '/{id}', new CallableRequestHandler(function (Request $req, Response $res, array $args) use ($c) {
         $id = $args['id'];
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
@@ -113,8 +129,10 @@ return function (\Pimple\Container $c, \Aerys\Router $app) {
             return $c['view']->renderNotFound($res);
         }
 
-        if (!$c['auth']->isAuthorized($req, $id)) {
-            return $res->addHeader('Location', '/')->setStatus(302)->end();
+        if (!(yield from $c['auth']->isAuthorized($req, $id))) {
+            $res->addHeader('Location', '/');
+            $res->setStatus(302);
+            return $res;
         }
 
         $data = ['raffleName' => yield from $rs->getName($id)];
@@ -124,7 +142,7 @@ return function (\Pimple\Container $c, \Aerys\Router $app) {
         }
 
         return $c['view']->render($res, 'finished.php', $data);
-    });
+    }));
 
     return $app;
 };
