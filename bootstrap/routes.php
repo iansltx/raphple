@@ -115,7 +115,7 @@ return function (\Pimple\Container $c, Router $app) {
         }
 
         return $c['view']->render(new Response(), 'waiting.php', [
-            'phoneNumber' => $rs->getPhoneNumber($id),
+            'phoneNumber' => $rs->getPrettyPhoneNumber($id),
             'code' => $rs->getCode($id),
             'entrantNumbers' => $numbers,
             'entrantCount' => yield from $rs->getEntrantCount($id)

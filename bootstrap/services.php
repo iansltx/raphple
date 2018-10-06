@@ -35,12 +35,14 @@ class RaffleService
     protected $db;
     protected $sms;
     protected $phoneNumber;
+    protected $prettyPhoneNumber;
 
-    public function __construct(\Amp\Mysql\Pool $db, SMS $sms, $phone_number)
+    public function __construct(\Amp\Mysql\Pool $db, SMS $sms, ?string $phoneNumber, ?string $prettyPhoneNumber)
     {
         $this->db = $db;
         $this->sms = $sms;
-        $this->phoneNumber = $phone_number;
+        $this->phoneNumber = $phoneNumber;
+        $this->prettyPhoneNumber = $prettyPhoneNumber;
     }
 
     /**
@@ -55,7 +57,7 @@ class RaffleService
         $sid = uniqid();
 
         /** @var \Amp\Mysql\Connection $conn */
-        $conn = $this->db->extractConnection();
+        $conn = yield $this->db->extractConnection();
 
         yield $conn->execute('INSERT INTO raffle (raffle_name, sid) VALUES(?, ?)', [$name, $sid]);
 
@@ -91,6 +93,11 @@ class RaffleService
     public function getPhoneNumber($id)
     {
         return $this->phoneNumber;
+    }
+
+    public function getPrettyPhoneNumber($id)
+    {
+        return $this->prettyPhoneNumber;
     }
 
     public function getCode($id)
@@ -151,8 +158,8 @@ class RaffleService
     {
         /** @var ResultSet $resultSet */
         $resultSet = yield $this->db->execute('SELECT sid FROM raffle WHERE id = ?', [$id]);
-
-        return yield $resultSet->advance(ResultSet::FETCH_ARRAY) ? $resultSet->getCurrent()[0] : null;
+        $exists = yield $resultSet->advance(ResultSet::FETCH_ARRAY);
+        return $exists ? $resultSet->getCurrent()[0] : null;
     }
 
     /**
@@ -185,19 +192,20 @@ class RaffleService
     {
         yield $this->db->execute('UPDATE raffle SET is_complete = 1 WHERE id = ?', [$id]);
 
-        /** @var ResultSet $resultSets */
-        $resultSets = yield $this->db->execute('SELECT item FROM raffle_item WHERE raffle_id = ? ORDER BY id ASC;'.
-                'SELECT phone_number FROM entrant WHERE raffle_id = ?;', [$id, $id]);
+        /** @var ResultSet[] $resultSets */
+        $resultSets = yield [
+            $this->db->execute('SELECT item FROM raffle_item WHERE raffle_id = ? ORDER BY id ASC', [$id]),
+            $this->db->execute('SELECT phone_number FROM entrant WHERE raffle_id = ?', [$id])
+        ];
 
         $items = [];
-        while (yield $resultSets->advance(ResultSet::FETCH_ARRAY)) {
-            $items[] = $resultSets->getCurrent()[0];
+        while (yield $resultSets[0]->advance(ResultSet::FETCH_ARRAY)) {
+            $items[] = $resultSets[0]->getCurrent()[0];
         }
 
-        yield $resultSets->nextResultSet();
         $entrants = [];
-        while (yield $resultSets->advance(ResultSet::FETCH_ARRAY)) {
-            $entrants[] = $resultSets->getCurrent()[0];
+        while (yield $resultSets[1]->advance(ResultSet::FETCH_ARRAY)) {
+            $entrants[] = $resultSets[1]->getCurrent()[0];
         }
 
         shuffle($entrants);
@@ -281,7 +289,7 @@ class Auth
     {
         $sid = yield from $this->rs->getSid($id);
         parse_str($req->getUri()->getQuery(), $query);
-        return $sid === $req->getCookie('sid' . $id) || $sid === ($query['sid'] ?? false);
+        return $sid === $req->getCookie('sid' . $id)->getValue() || $sid === ($query['sid'] ?? false);
     }
 }
 
@@ -291,7 +299,8 @@ return function (\Pimple\Container $container, $env) {
     };
     $container['raffleService'] = function ($c) use ($env) {
         return new RaffleService(Amp\Mysql\pool('host=' . $env['DB_HOST'] . ';db=' . $env['DB_NAME'] .
-            ";user=" . $env['DB_USER'] . ";pass=" . $env['DB_PASSWORD']), $c['sms'], $env['PHONE_NUMBER']);
+            ";user=" . $env['DB_USER'] . ";pass=" . $env['DB_PASSWORD']), $c['sms'], $env['PHONE_NUMBER'],
+            $env['PRETTY_PHONE_NUMBER'] ?? $env['PHONE_NUMBER']);
     };
     $container['auth'] = function (\Pimple\Container $c) {
         return new Auth($c['raffleService']);

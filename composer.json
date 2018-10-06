@@ -9,6 +9,7 @@
     }
   ],
   "require": {
+    "php": "^7.1",
     "ext-pcntl": "*",
     "amphp/http-server": "^0.8.3",
     "amphp/http-server-static-content": "^1.0.2",
