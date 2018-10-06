@@ -1,20 +1,25 @@
 <?php
 
+use Amp\Http\Cookie\ResponseCookie;
 use Amp\Http\Server\FormParser\Form;
 use Amp\Http\Server\Request;
 use Amp\Http\Server\RequestHandler\CallableRequestHandler;
 use Amp\Http\Server\Response;
 use function Amp\Http\Server\FormParser\parseForm;
+use Amp\Http\Server\Router;
+use Amp\Http\Status;
 
-return function (\Pimple\Container $c, \Amp\Http\Server\Router $app) {
+return function (\Pimple\Container $c, Router $app) {
     // incoming SMS webhooks
 
-    $app->addRoute('POST', '/twilio', new CallableRequestHandler(function (Request $req, Response $res) use ($c) {
+    $app->addRoute('POST', '/twilio', new CallableRequestHandler(function (Request $req) use ($c) {
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
 
         /** @var Form $form */
         $form = yield parseForm($req);
+
+        $res = new Response();
 
         if (yield from $rs->recordEntry($form->getValue('Body'), $form->getValue('From'))) {
             $res->setBody("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>
@@ -26,7 +31,7 @@ return function (\Pimple\Container $c, \Amp\Http\Server\Router $app) {
         return $res;
     }));
 
-    $app->addRoute('GET', '/nexmo', new CallableRequestHandler(functioN (Request $req, Response $res) use ($c) {
+    $app->addRoute('GET', '/nexmo', new CallableRequestHandler(functioN (Request $req) use ($c) {
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
 
@@ -38,18 +43,17 @@ return function (\Pimple\Container $c, \Amp\Http\Server\Router $app) {
         if ($code && yield from $rs->recordEntry($code, $from)) {
             $c['sms']->send($from, 'Your entry into ' . (yield from $rs->getNameByCode($code)) . ' has been received!');
         }
-        $res->setBody('Message received.');
 
-        return $res;
+        return new Response(Status::OK, [], 'Message received.');
     }));
 
     // end of webhooks
 
-    $app->addRoute('GET', '/', new CallableRequestHandler(function (Request $req, Response $res) use ($c) {
-        return $c['view']->render($res, 'home.php');
+    $app->addRoute('GET', '/', new CallableRequestHandler(function (Request $req) use ($c) {
+        return $c['view']->render(new Response(), 'home.php');
     }));
 
-    $app->addRoute('POST', '/', new CallableRequestHandler(function (Request $req, Response $res) use ($c) {
+    $app->addRoute('POST', '/', new CallableRequestHandler(function (Request $req) use ($c) {
         /** @var Form $form */
         $form = yield parseForm($req);
         $items = trim($form->getValue('raffle_items'));
@@ -65,25 +69,24 @@ return function (\Pimple\Container $c, \Amp\Http\Server\Router $app) {
         }
 
         if (count($errors)) {
-            return $c['view']->render($res, 'home.php',
+            return $c['view']->render(new Response(), 'home.php',
                 ['raffleItems' => $items, 'raffleName' => $name, 'errors' => $errors]);
         }
 
         $id = yield from $c['raffleService']->create($name, explode("\n", trim($items)));
 
-        $res->addHeader('Location', '/' . $id);
-        $res->setCookie(new \Amp\Http\Cookie\ResponseCookie('sid' . $id, yield from $c['raffleService']->getSid($id)));
-        $res->setStatus(302);
+        $res = new Response(302, ['Location' => '/' . $id]);
+        $res->setCookie(new ResponseCookie('sid' . $id, yield from $c['raffleService']->getSid($id)));
         return $res;
     }));
 
-    $app->addRoute('GET', '/{id}', new CallableRequestHandler(function (Request $req, Response $res, array $args) use ($c) {
-        $id = $args['id'];
+    $app->addRoute('GET', '/{id}', new CallableRequestHandler(function (Request $req) use ($c) {
+        $id = $req->getAttribute(Router::class)['id'];
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
 
         if (!(yield from $rs->raffleExists($id))) {
-            return $c['view']->renderNotFound($res);
+            return $c['view']->renderNotFound(new Response());
         }
 
         $numbers = yield from $rs->getEntrantPhoneNumbers($id);
@@ -101,18 +104,17 @@ return function (\Pimple\Container $c, \Amp\Http\Server\Router $app) {
                 }, $numbers);
             }
 
-            $res->setBody(json_encode($output));
-            return $res;
+            return new Response(Status::OK, ['Content-Type' => 'applications/json'], json_encode($output));
         }
 
         if (yield from $rs->isComplete($id)) {
-            return $c['view']->render($res, 'finished.php', ['raffleName' => yield from $rs->getName($id)]);
+            return $c['view']->render(new Response(), 'finished.php', ['raffleName' => yield from $rs->getName($id)]);
         }
         if (!(yield from $c['auth']->isAuthorized($req, $id))) {
             $numbers = null;
         }
 
-        return $c['view']->render($res, 'waiting.php', [
+        return $c['view']->render(new Response(), 'waiting.php', [
             'phoneNumber' => $rs->getPhoneNumber($id),
             'code' => $rs->getCode($id),
             'entrantNumbers' => $numbers,
@@ -120,19 +122,17 @@ return function (\Pimple\Container $c, \Amp\Http\Server\Router $app) {
         ]);
     }));
 
-    $app->addRoute('POST', '/{id}', new CallableRequestHandler(function (Request $req, Response $res, array $args) use ($c) {
-        $id = $args['id'];
+    $app->addRoute('POST', '/{id}', new CallableRequestHandler(function (Request $req) use ($c) {
+        $id = $req->getAttribute(Router::class)['id'];
         /** @var RaffleService $rs */
         $rs = $c['raffleService'];
 
         if (!(yield from $rs->raffleExists($id))) {
-            return $c['view']->renderNotFound($res);
+            return $c['view']->renderNotFound(new Response());
         }
 
         if (!(yield from $c['auth']->isAuthorized($req, $id))) {
-            $res->addHeader('Location', '/');
-            $res->setStatus(302);
-            return $res;
+            return new Response(302, ['Location' => '/']);
         }
 
         $data = ['raffleName' => yield from $rs->getName($id)];
@@ -141,7 +141,7 @@ return function (\Pimple\Container $c, \Amp\Http\Server\Router $app) {
             $data['winnerNumbers'] = yield from $rs->complete($id);
         }
 
-        return $c['view']->render($res, 'finished.php', $data);
+        return $c['view']->render(new Response(), 'finished.php', $data);
     }));
 
     return $app;
