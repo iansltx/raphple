@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b6e3ba9c8d39ab6bc7c89657d27de87f",
+    "content-hash": "211b9dbb048aa063868360721c31df8b",
     "packages": [
         {
             "name": "amphp/amp",
@@ -253,12 +253,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/amphp/cluster.git",
-                "reference": "2d2b8af08042b7a246da6b751d69b2e9ef11bf52"
+                "reference": "648a002d53ecdb35eeaaa0b1d0c17df2299de7a1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/amphp/cluster/zipball/2d2b8af08042b7a246da6b751d69b2e9ef11bf52",
-                "reference": "2d2b8af08042b7a246da6b751d69b2e9ef11bf52",
+                "url": "https://api.github.com/repos/amphp/cluster/zipball/648a002d53ecdb35eeaaa0b1d0c17df2299de7a1",
+                "reference": "648a002d53ecdb35eeaaa0b1d0c17df2299de7a1",
                 "shasum": ""
             },
             "require": {
@@ -326,7 +326,7 @@
                 "non-blocking",
                 "parallel"
             ],
-            "time": "2018-10-03T11:29:15+00:00"
+            "time": "2018-10-06T10:41:48+00:00"
         },
         {
             "name": "amphp/dns",
@@ -2096,6 +2096,7 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
+        "php": "^7.1",
         "ext-pcntl": "*"
     },
     "platform-dev": []

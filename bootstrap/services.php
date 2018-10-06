@@ -289,7 +289,11 @@ class Auth
     {
         $sid = yield from $this->rs->getSid($id);
         parse_str($req->getUri()->getQuery(), $query);
-        return $sid === $req->getCookie('sid' . $id)->getValue() || $sid === ($query['sid'] ?? false);
+        if (($cookie = $req->getCookie('sid' . $id)) && $sid === $cookie->getValue()) {
+            return true;
+        }
+
+        return $sid === ($query['sid'] ?? false);
     }
 }
 
