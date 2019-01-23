@@ -1,46 +1,33 @@
 # Raphple
 
-A mobile phone based online raffle system using PHP, MySQL, Aerys (from AMPHP) and Twilio or Nexmo. You can see a live
+A mobile phone based online raffle system using PHP, MySQL, AMPHP components, and Twilio or Nexmo. You can see a live
 implementation (using Twilio) as http://raphple.com.
 
 ## Setup (non-Docker)
 
 0. For higher performance, consider installing the `libevent`, `ev`, or `php-uv` extensions. The included Dockerfile
 uses `uv`.
-1. Download Composer and install dependencies.
-2. Set up an SMS provider account (Twilio or Nexmo) and point it to the appropriate webhook, or use a dummy account.
+1. Set up an SMS provider account (Twilio or Nexmo) and point it to the appropriate webhook, or use a dummy account.
 See Setup (SMS) for more details.
-3. Import /schema.sql into a MySQL 5.6+ database.
+2. Download Composer and install dependencies.
+3. Import /db/schema.sql into a MySQL 5.6+ database.
 4. Set $_ENV vars for your SMS provider, as well as DB_HOST, DB_USER, DB_PASSWORD and DB_NAME vars to 
-connect to your database, and APP_PORT for how you want to access the web server.
-5. Run `vendor/bin/cluster public/index.php`
+connect to your database, and APP_PORT for how you want to access the web server (defaults to port 80).
+5. Run `php public/index.php` (you'll need sudo if you're keeping the port 80 default).
 
-## Setup (Docker)
+## Setup (docker-compose)
 
-You'll still need to do steps 2-3, though for step 4 you'll supply env vars to the container. Once you point your 
-container to your database you'll have everything you need.
+After completing step 1 of the above, copy docker-compose.override.yml.example to docker-compose.override.yml and
+set the appropriate environment variables for the SMS provider you're using. Then run `docker-compose build` and
+`docker-compose up`. The web server will be available at port 80, and the database will be accessible on port 33060.
 
-*NOTE:* Port must be what you actually access the container on, and must be explicitly declared in addition
-to Docker port-forwarding.
-
-For development, mount a volume with your code to `/var/app`. Otherwise your code will stay at whatever state it was
-when you built your container.
-
-So for a dev build running in the foreground on port 8080 with a dummy SMS wait of 500ms you'd run
-
-```bash
-docker build . -t raphple-amp
-docker run -p 8080:8080 -v "$PWD":/var/app -e DUMMY_SMS_WAIT_MS=500 \
--e DB_HOST=hostname -e DB_USER=user -e DB_PASSWORD=password -e DB_NAME=db -e APP_PORT=8080 raphple-amp
-```
-
-*NOTE:* Unlike a standard PHP application, once the container is running, modifying code, even via a volume mount, won't
-change what runs; once the web server reads in a given file, it's in memory until the server process/container is
-terminated.
+If you want to reflect code updates without a rebuild (though you'll still need to restart the container due to how
+amphp works), run `composer install` on your local directory, then volume-mount that directory into `/var/app` in the
+web container.
 
 ## Setup (SMS)
 
-Raphple now supports Twilio and Nexmo, and requires libraries for neither (doesn't require curl either). Just set the
+Raphple supports Twilio and Nexmo directly (no need for SDKs or curl). To use either, set the
 appropriate env vars for your provider, and point that provider's webhook endpoint at the proper URL. Phone number
 formats also vary between providers, but as long as you only use one at a time that doesn't matter.
 

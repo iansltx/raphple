@@ -2,6 +2,7 @@
 
 use Amp\Http\Server\Response;
 use Amp\Mysql\ResultSet;
+use Amp\Mysql\ConnectionConfig;
 
 require __DIR__ . '/smsServices.php';
 
@@ -49,8 +50,8 @@ class RaffleService
      * @param $name
      * @param array $items
      * @return Generator
-     * @throws \Amp\Mysql\ConnectionException
-     * @throws \Amp\Mysql\FailureException
+     * @throws \Amp\Sql\ConnectionException
+     * @throws \Amp\Sql\FailureException
      */
     public function create($name, array $items)
     {
@@ -59,9 +60,12 @@ class RaffleService
         /** @var \Amp\Mysql\Connection $conn */
         $conn = yield $this->db->extractConnection();
 
-        yield $conn->execute('INSERT INTO raffle (raffle_name, sid) VALUES(?, ?)', [$name, $sid]);
+        /** @var \Amp\Mysql\Statement $statement */
+        $statement = yield $conn->prepare('INSERT INTO raffle (raffle_name, sid) VALUES(?, ?)');
+        /** @var \Amp\Mysql\CommandResult $result */
+        $result = yield $statement->execute([$name, $sid]);
 
-        $id = $conn->getConnInfo()->insertId;
+        $id = $result->getLastInsertId();
 
         $conn->close();
 
@@ -78,16 +82,16 @@ class RaffleService
     /**
      * @param $id
      * @return mixed
-     * @throws \Amp\Mysql\ConnectionException
-     * @throws \Amp\Mysql\FailureException
+     * @throws \Amp\Sql\ConnectionException
+     * @throws \Amp\Sql\FailureException
      * @throws Throwable
      */
     public function getEntrantCount($id)
     {
         /** @var ResultSet $resultSet */
-        $resultSet = yield $this->db->execute('SELECT COUNT(*) FROM entrant WHERE raffle_id = ?', [$id]);
-        yield $resultSet->advance(ResultSet::FETCH_ARRAY);
-        return $resultSet->getCurrent()[0];
+        $resultSet = yield $this->db->execute('SELECT COUNT(*) ct FROM entrant WHERE raffle_id = ?', [$id]);
+        yield $resultSet->advance();
+        return $resultSet->getCurrent()['ct'];
     }
 
     public function getPhoneNumber($id)
@@ -108,39 +112,39 @@ class RaffleService
     /**
      * @param $id
      * @return bool
-     * @throws \Amp\Mysql\ConnectionException
-     * @throws \Amp\Mysql\FailureException
+     * @throws \Amp\Sql\ConnectionException
+     * @throws \Amp\Sql\FailureException
      * @throws Throwable
      */
     public function isComplete($id)
     {
         /** @var ResultSet $resultSet */
-        $resultSet = yield $this->db->execute('SELECT COUNT(*) FROM raffle WHERE is_complete = 1 && id = ?', [$id]);
-        yield $resultSet->advance(ResultSet::FETCH_ARRAY);
-        return $resultSet->getCurrent()[0];
+        $resultSet = yield $this->db->execute('SELECT COUNT(*) ct FROM raffle WHERE is_complete = 1 && id = ?', [$id]);
+        yield $resultSet->advance();
+        return $resultSet->getCurrent()['ct'];
     }
 
     /**
      * @param $id
      * @return Generator
      * @throws Throwable
-     * @throws \Amp\Mysql\ConnectionException
-     * @throws \Amp\Mysql\FailureException
+     * @throws \Amp\Sql\ConnectionException
+     * @throws \Amp\Sql\FailureException
      */
     public function getName($id)
     {
         /** @var ResultSet $resultSet */
         $resultSet = yield $this->db->execute('SELECT raffle_name FROM raffle WHERE id = ?', [$id]);
-        yield $resultSet->advance(ResultSet::FETCH_ARRAY);
-        return $resultSet->getCurrent()[0];
+        yield $resultSet->advance();
+        return $resultSet->getCurrent()['raffle_name'];
     }
 
     /**
      * @param $code
      * @return Generator
      * @throws Throwable
-     * @throws \Amp\Mysql\ConnectionException
-     * @throws \Amp\Mysql\FailureException
+     * @throws \Amp\Sql\ConnectionException
+     * @throws \Amp\Sql\FailureException
      */
     public function getNameByCode($code)
     {
@@ -150,23 +154,23 @@ class RaffleService
     /**
      * @param $id
      * @return mixed
-     * @throws \Amp\Mysql\ConnectionException
-     * @throws \Amp\Mysql\FailureException
+     * @throws \Amp\Sql\ConnectionException
+     * @throws \Amp\Sql\FailureException
      * @throws Throwable
      */
     public function getSid($id)
     {
         /** @var ResultSet $resultSet */
         $resultSet = yield $this->db->execute('SELECT sid FROM raffle WHERE id = ?', [$id]);
-        $exists = yield $resultSet->advance(ResultSet::FETCH_ARRAY);
-        return $exists ? $resultSet->getCurrent()[0] : null;
+        $exists = yield $resultSet->advance();
+        return $exists ? $resultSet->getCurrent()['sid'] : null;
     }
 
     /**
      * @param $id
      * @return array
-     * @throws \Amp\Mysql\ConnectionException
-     * @throws \Amp\Mysql\FailureException
+     * @throws \Amp\Sql\ConnectionException
+     * @throws \Amp\Sql\FailureException
      * @throws Throwable
      */
     public function getEntrantPhoneNumbers($id)
@@ -174,8 +178,8 @@ class RaffleService
         /** @var ResultSet $resultSet */
         $resultSet = yield $this->db->execute('SELECT phone_number FROM entrant WHERE raffle_id = ?', [$id]);
         $phoneNumbers = [];
-        while (yield $resultSet->advance(ResultSet::FETCH_ARRAY)) {
-            $phoneNumbers[] = $resultSet->getCurrent()[0];
+        while (yield $resultSet->advance()) {
+            $phoneNumbers[] = $resultSet->getCurrent()['phone_number'];
         }
 
         return $phoneNumbers;
@@ -184,8 +188,8 @@ class RaffleService
     /**
      * @param $id
      * @return array|Generator
-     * @throws \Amp\Mysql\ConnectionException
-     * @throws \Amp\Mysql\FailureException
+     * @throws \Amp\Sql\ConnectionException
+     * @throws \Amp\Sql\FailureException
      * @throws Throwable
      */
     public function complete($id)
@@ -199,13 +203,13 @@ class RaffleService
         ];
 
         $items = [];
-        while (yield $resultSets[0]->advance(ResultSet::FETCH_ARRAY)) {
-            $items[] = $resultSets[0]->getCurrent()[0];
+        while (yield $resultSets[0]->advance()) {
+            $items[] = $resultSets[0]->getCurrent()['item'];
         }
 
         $entrants = [];
-        while (yield $resultSets[1]->advance(ResultSet::FETCH_ARRAY)) {
-            $entrants[] = $resultSets[1]->getCurrent()[0];
+        while (yield $resultSets[1]->advance()) {
+            $entrants[] = $resultSets[1]->getCurrent()['phone_mumber'];
         }
 
         shuffle($entrants);
@@ -230,8 +234,8 @@ class RaffleService
      * @param $code
      * @param $phone_number
      * @return bool|Generator
-     * @throws \Amp\Mysql\ConnectionException
-     * @throws \Amp\Mysql\FailureException
+     * @throws \Amp\Sql\ConnectionException
+     * @throws \Amp\Sql\FailureException
      * @throws Throwable
      */
     public function recordEntry($code, $phone_number)
@@ -240,11 +244,11 @@ class RaffleService
             return false;
         }
 
-        /** @var ResultSet $entrantCtRs */
-        $entrantCtRs = yield $this->db->execute('SELECT COUNT(*) FROM entrant WHERE raffle_id = ? && phone_number = ?',
+        /** @var ResultSet $entrants */
+        $entrants = yield $this->db->execute('SELECT COUNT(*) ct FROM entrant WHERE raffle_id = ? && phone_number = ?',
             [$code, $phone_number]);
-        yield $entrantCtRs->advance(ResultSet::FETCH_ARRAY);
-        if ($entrantCtRs->getCurrent()[0]) {
+        yield $entrants->advance();
+        if ($entrants->getCurrent()['ct']) {
             return false;
         }
 
@@ -255,16 +259,16 @@ class RaffleService
     /**
      * @param $id
      * @return bool
-     * @throws \Amp\Mysql\ConnectionException
-     * @throws \Amp\Mysql\FailureException
+     * @throws \Amp\Sql\ConnectionException
+     * @throws \Amp\Sql\FailureException
      * @throws Throwable
      */
     public function raffleExists($id)
     {
         /** @var ResultSet $existenceRs */
-        $existenceRs = yield $this->db->execute('SELECT COUNT(*) FROM raffle WHERE id = ?', [$id]);
-        yield $existenceRs->advance(ResultSet::FETCH_ARRAY);
-        return $existenceRs->getCurrent()[0] > 0;
+        $existenceRs = yield $this->db->execute('SELECT COUNT(*) ct FROM raffle WHERE id = ?', [$id]);
+        yield $existenceRs->advance();
+        return $existenceRs->getCurrent()['ct'] > 0;
     }
 }
 
@@ -282,8 +286,8 @@ class Auth
      * @param $id
      * @return bool
      * @throws Throwable
-     * @throws \Amp\Mysql\ConnectionException
-     * @throws \Amp\Mysql\FailureException
+     * @throws \Amp\Sql\ConnectionException
+     * @throws \Amp\Sql\FailureException
      */
     public function isAuthorized(\Amp\Http\Server\Request $req, $id)
     {
@@ -302,9 +306,9 @@ return function (\Pimple\Container $container, $env) {
         return new View(__DIR__ . '/../templates');
     };
     $container['raffleService'] = function ($c) use ($env) {
-        return new RaffleService(Amp\Mysql\pool('host=' . $env['DB_HOST'] . ';db=' . $env['DB_NAME'] .
-            ";user=" . $env['DB_USER'] . ";pass=" . $env['DB_PASSWORD']), $c['sms'], $env['PHONE_NUMBER'],
-            $env['PRETTY_PHONE_NUMBER'] ?? $env['PHONE_NUMBER']);
+        return new RaffleService(Amp\Mysql\pool(new ConnectionConfig(
+            $env['DB_HOST'], ConnectionConfig::DEFAULT_PORT, $env['DB_USER'], $env['DB_PASSWORD'], $env['DB_NAME']
+        )), $c['sms'], $env['PHONE_NUMBER'], $env['PRETTY_PHONE_NUMBER'] ?? $env['PHONE_NUMBER']);
     };
     $container['auth'] = function (\Pimple\Container $c) {
         return new Auth($c['raffleService']);

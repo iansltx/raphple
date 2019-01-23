@@ -1,7 +1,7 @@
-FROM php:7.2-cli-alpine
+FROM php:7.3-cli-alpine
 
 # install php-uv and zip
-RUN apk add --no-cache git libuv-dev zlib-dev && \
+RUN apk add --no-cache git libuv-dev libzip-dev && \
 git clone https://github.com/bwoebi/php-uv.git /tmp/php-uv --recursive && \
 docker-php-ext-install /tmp/php-uv zip pcntl
 
