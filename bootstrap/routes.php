@@ -76,6 +76,10 @@ return function(\Slim\App $app) {
 
             if ($this->auth->isAuthorized($req, $id))
                 $output['numbers'] = array_map(function ($number) {
+                    if (strlen($number) != 10 && substr($number, 0, 2) != '+1') {
+                        return substr($number, 0, 3) . '...' . substr($number, -4);
+                    }
+
                     return 'xxx-xxx-' . substr($number, -4);
                 }, $numbers);
 
