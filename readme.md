@@ -5,10 +5,10 @@ implementation (using Twilio) as http://raphple.com.
 
 ## Setup (non-Docker)
 
-1. Download Composer and install dependencies.
-2. Set your document root to /public, with index.php as the default script.
-3. Set up an SMS provider account (Twilio or Nexmo) and point it to the appropriate webhook, or use a dummy account.
+1. Set up an SMS provider account (Twilio or Nexmo) and point it to the appropriate webhook, or use a dummy account.
 See Setup (SMS) for more details.
+2. Download Composer and install dependencies.
+3. Set your document root to /public, with index.php as the default script.
 4. Import /schema.sql into a MySQL 5.6+ database.
 5. Set $_SERVER or $_ENV vars for your SMS provider,
 as well as DB_HOST, DB_USER, DB_PASSWORD and DB_NAME vars to connect to your database. If you are
@@ -16,20 +16,13 @@ using nginx, add `fastcgi_param DB_HOST {value};` lines after `include fastcgi_p
 
 ## Setup (Docker)
 
-You'll still need to do steps 3-5, though for step 5 you'll supply env vars to the container. The included Dockerfile
-includes nginx + php-fpm managed via runit, so once you point your container to your database you'll have everything
-you need.
+After performing step 1 in the above, copy `docker-compose.override-example.yml` to `docker-compose.override.yml` and
+set up the environment variables specific to your SMS provider. Once that's done, `docker-compose up` will get you web
+and database containers, with the former running nginx + php-fpm via runit, and the latter having the schema
+automatically imported on-start.
 
 For development, mount a volume with your code to `/var/app`. Otherwise your code stay at whatever state it was when you
 built your container.
-
-So for a dev build running in the foreground on port 8080 with a dummy SMS wait of 500ms you'd run
-
-```bash
-docker build . -t raphple-slim
-docker run -p 8080:80 --name raphple-slim -v "$PWD":/var/app -e DUMMY_SMS_WAIT_MS=500 \
--e DB_HOST=hostname -e DB_USER=user -e DB_PASSWORD=password -e DB_NAME=db raphple-slim
-```
 
 ## Setup (SMS)
 

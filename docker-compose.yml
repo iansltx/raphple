@@ -1,0 +1,16 @@
+version : "3"
+services:
+  web:
+    build: .
+    ports:
+      - "80:80"
+    environment:
+      - "DB_HOST=db"
+      - "DB_USER=root"
+      - "DB_PASSWORD=raphple"
+      - "DB_NAME=raphple"
+  db:
+    build: ./db
+    environment:
+      - "MYSQL_DATABASE=raphple"
+      - "MYSQL_ROOT_PASSWORD=raphple"
