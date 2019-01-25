@@ -10,4 +10,3 @@ services:
 #     - "NEXMO_KEY=a1234b1234"
 #     - "NEXMO_SECRET=d34db33f"
 #     - "DUMMY_SMS_WAIT_MS=1337"
-
