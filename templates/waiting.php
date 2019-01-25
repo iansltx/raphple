@@ -9,7 +9,7 @@
         <?php if (isset($entrantNumbers)): ?>
             <ul id="entrant_numbers">
             <?php foreach ($entrantNumbers as $number): ?>
-                <li>xxx-xxx-<?= substr($number, -4); ?></li>
+                <li><?= $maskNumber($number) ?></li>
             <?php endforeach ?>
             </ul>
             <form method="post">

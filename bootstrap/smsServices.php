@@ -17,7 +17,7 @@ class TwilioSMS implements SMS
     {
         $this->sid = $sid;
         $this->token = $token;
-        $this->fromNumber = $fromNumber;
+        $this->fromNumber = str_replace(['-', ' '], '', $fromNumber);
     }
 
     public function send($to, $text)
@@ -25,6 +25,7 @@ class TwilioSMS implements SMS
         return (new \Amp\Artax\DefaultClient)->request(
             (new Request('https://api.twilio.com/2010-04-01/Accounts/' . $this->sid . '/Messages.json', 'POST'))
             ->withHeader('Authorization', 'Basic ' . base64_encode($this->sid . ':' . $this->token))
+            ->withHeader('Content-Type', 'application/x-www-form-urlencoded')
             ->withBody(http_build_query([
                 'To' => $to,
                 'From' => $this->fromNumber,
@@ -44,7 +45,7 @@ class NexmoSMS implements SMS
     {
         $this->key = $key;
         $this->secret = $secret;
-        $this->fromNumber = $fromNumber;
+        $this->fromNumber = str_replace(['-', ' '], '', $fromNumber);
     }
 
     /**

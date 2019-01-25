@@ -19,7 +19,7 @@ return function (\Pimple\Container $c, Router $app) {
         /** @var Form $form */
         $form = yield parseForm($req);
 
-        $res = new Response();
+        $res = new Response(Status::OK, ['Content-Type' => 'text/xml']);
 
         if (yield from $rs->recordEntry($form->getValue('Body'), $form->getValue('From'))) {
             $res->setBody("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>
@@ -100,6 +100,10 @@ return function (\Pimple\Container $c, Router $app) {
 
             if (yield from $c['auth']->isAuthorized($req, $id)) {
                 $output['numbers'] = array_map(function ($number) {
+                    if (strlen($number) != 10 && substr($number, 0, 2) != '+1') {
+                        return substr($number, 0, 3) . '...' . substr($number, -4);
+                    }
+
                     return 'xxx-xxx-' . substr($number, -4);
                 }, $numbers);
             }

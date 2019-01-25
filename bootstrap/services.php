@@ -209,7 +209,7 @@ class RaffleService
 
         $entrants = [];
         while (yield $resultSets[1]->advance()) {
-            $entrants[] = $resultSets[1]->getCurrent()['phone_mumber'];
+            $entrants[] = $resultSets[1]->getCurrent()['phone_number'];
         }
 
         shuffle($entrants);

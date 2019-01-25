@@ -8,7 +8,7 @@
             <h3>Winners</h3>
             <ul id="winner_numbers">
                 <?php foreach ($winnerNumbers as $number): ?>
-                    <li>xxx-xxx-<?= substr($number, -4); ?></li>
+                    <li><?= $maskNumber($number) ?></li>
                 <?php endforeach ?>
             </ul>
         <?php endif; ?>
