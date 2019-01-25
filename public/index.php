@@ -20,8 +20,8 @@ Amp\Loop::run(function() {
     $router->setFallback(new DocumentRoot(__DIR__));
 
     $server = new Server([
-        \Amp\Socket\listen('0.0.0.0:' . $_ENV['APP_PORT']),
-        \Amp\Socket\listen('[::]:' . $_ENV['APP_PORT'])
+        \Amp\Socket\listen('0.0.0.0:' . ($_ENV['APP_PORT'] ?? 80)),
+        \Amp\Socket\listen('[::]:' . ($_ENV['APP_PORT'] ?? 80))
     ], $router, $logger);
 
     yield $server->start();

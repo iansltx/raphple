@@ -18,6 +18,18 @@
 </head>
 <body>
 
+<?php
+
+$maskNumber = function ($number) {
+    if (strlen($number) != 10 && substr($number, 0, 2) != '+1') {
+        return substr($number, 0, 3) . '...' . substr($number, -4);
+    }
+
+    return 'xxx-xxx-' . substr($number, -4);
+};
+
+?>
+
 <nav class="navbar navbar-inverse navbar-fixed-top">
     <div class="container">
         <div class="navbar-header">
