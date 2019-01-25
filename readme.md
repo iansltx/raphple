@@ -14,13 +14,14 @@ See Setup (SMS) for more details.
 3. Import /db/schema.sql into a MySQL 5.6+ database.
 4. Set $_ENV vars for your SMS provider, as well as DB_HOST, DB_USER, DB_PASSWORD and DB_NAME vars to 
 connect to your database, and APP_PORT for how you want to access the web server (defaults to port 80).
-5. Run `php public/index.php` (you'll need sudo if you're keeping the port 80 default).
+5. Run `php public/index.php` (you'll need sudo if you're keeping the port 80 default) or, for clustered operation,
+`vendor/bin/cluster public/index.php`.
 
 ## Setup (docker-compose)
 
 After completing step 1 of the above, copy docker-compose.override-example.yml to docker-compose.override.yml and
 set the appropriate environment variables for the SMS provider you're using. Then run `docker-compose build` and
-`docker-compose up`. The web server will be available at port 80.
+`docker-compose up`. The web server will be available at port 80, and is managed by amphp/cluster for parallelism.
 
 If you want to reflect code updates without a rebuild (though you'll still need to restart the container due to how
 amphp works), run `composer install` on your local directory, then volume-mount that directory into `/var/app` in the
