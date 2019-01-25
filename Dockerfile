@@ -21,6 +21,6 @@ COPY public /var/app/public
 COPY bootstrap /var/app/bootstrap
 
 WORKDIR /var/app
-CMD ["php", "public/index.php"]
+CMD ["vendor/bin/cluster", "public/index.php"]
 ENV APP_PORT=80
 EXPOSE 80
