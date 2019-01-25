@@ -1,0 +1,13 @@
+version : "3"
+services:
+  web:
+    environment:
+# Provide a phone number
+#     - "PHONE_NUMBER=+1-555-555-1212"
+# Fill in the env vars applicable to your SMS provider
+#     - "TWILIO_SID=AC1234"
+#     - "TWILIO_TOKEN=a123b123"
+#     - "NEXMO_KEY=a1234b1234"
+#     - "NEXMO_SECRET=d34db33f"
+#     - "DUMMY_SMS_WAIT_MS=1337"
+

@@ -5,8 +5,9 @@ implementation (using Twilio) as http://raphple.com.
 
 ## Setup (non-Docker)
 
-0. For higher performance, consider installing the `libevent`, `ev`, or `php-uv` extensions. The included Dockerfile
+For higher performance, consider installing the `libevent`, `ev`, or `php-uv` extensions. The included Dockerfile
 uses `uv`.
+
 1. Set up an SMS provider account (Twilio or Nexmo) and point it to the appropriate webhook, or use a dummy account.
 See Setup (SMS) for more details.
 2. Download Composer and install dependencies.
@@ -17,9 +18,9 @@ connect to your database, and APP_PORT for how you want to access the web server
 
 ## Setup (docker-compose)
 
-After completing step 1 of the above, copy docker-compose.override.yml.example to docker-compose.override.yml and
+After completing step 1 of the above, copy docker-compose.override-example.yml to docker-compose.override.yml and
 set the appropriate environment variables for the SMS provider you're using. Then run `docker-compose build` and
-`docker-compose up`. The web server will be available at port 80, and the database will be accessible on port 33060.
+`docker-compose up`. The web server will be available at port 80.
 
 If you want to reflect code updates without a rebuild (though you'll still need to restart the container due to how
 amphp works), run `composer install` on your local directory, then volume-mount that directory into `/var/app` in the
