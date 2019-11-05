@@ -1,6 +1,8 @@
 <?php
 
-use Slim\Http\Request;
+use Aura\Sql\ExtendedPdoInterface;
+use Illuminate\Container\Container;
+use Slim\Http\ServerRequest as Request;
 use Slim\Http\Response;
 
 require __DIR__ . '/smsServices.php';
@@ -131,15 +133,20 @@ class Auth
     }
 }
 
-return function(\Slim\Container $container, $env) {
-    $container['view'] = function() {return new View(__DIR__ . '/../templates');};
-    $container['raffleService'] = function($c) use ($env) {return new RaffleService(
-        new \Aura\Sql\ExtendedPdo('mysql:host=' . $env['DB_HOST'] . ';dbname=' . $env['DB_NAME'],
-            $env['DB_USER'], $env['DB_PASSWORD']), $c['sms'], $env['PHONE_NUMBER']
-    );};
-    $container['auth'] = function(\Slim\Container $c) {return new Auth($c->get('raffleService'));};
+return function(Container $container, $env) {
+    $container->alias(View::class, 'view');
+    $container->when(View::class)->needs('$template_dir')->give(__DIR__ . '/../templates');
 
-    $container['sms'] = function() use ($env) {
+    $container->alias(RaffleService::class, 'raffleService');
+    $container->when(RaffleService::class)->needs('$phone_number')->give($env['PHONE_NUMBER']);
+    $container->singleton(ExtendedPdoInterface::class, function () use ($env) {
+        return new \Aura\Sql\ExtendedPdo('mysql:host=' . $env['DB_HOST'] . ';dbname=' . $env['DB_NAME'],
+            $env['DB_USER'], $env['DB_PASSWORD']);
+    });
+
+    $container->alias(Auth::class, 'auth');
+
+    $container[SMS::class] = function() use ($env) {
         if (isset($env['TWILIO_SID'])) {
             return new TwilioSMS($env['TWILIO_SID'], $env['TWILIO_TOKEN'], $env['PHONE_NUMBER']);
         }
@@ -152,40 +159,44 @@ return function(\Slim\Container $container, $env) {
         throw new InvalidArgumentException('Could not find SMS service creds, and a dummy timeout was not supplied.');
     };
 
-    $container['addCookieToResponse'] = $container->protect(function(Response $res, $name, $properties) {
-        if (is_string($properties)) {
-            $properties = ['value' => $properties];
-        }
-
-        $result = urlencode($name) . '=' . urlencode($properties['value']);
-
-        if (isset($properties['domain'])) {
-            $result .= '; domain=' . $properties['domain'];
-        }
-
-        if (isset($properties['path'])) {
-            $result .= '; path=' . $properties['path'];
-        }
-
-        if (isset($properties['expires'])) {
-            if (is_string($properties['expires'])) {
-                $timestamp = strtotime($properties['expires']);
-            } else {
-                $timestamp = (int)$properties['expires'];
+    $container['addCookieToResponse'] = new class // Illuminate doesn't have a way to protect Closures
+    {
+        public function __invoke(Response $res, $name, $properties)
+        {
+            if (is_string($properties)) {
+                $properties = ['value' => $properties];
             }
-            if ($timestamp !== 0) {
-                $result .= '; expires=' . gmdate('D, d-M-Y H:i:s e', $timestamp);
+
+            $result = urlencode($name) . '=' . urlencode($properties['value']);
+
+            if (isset($properties['domain'])) {
+                $result .= '; domain=' . $properties['domain'];
             }
-        }
 
-        if (isset($properties['secure']) && $properties['secure']) {
-            $result .= '; secure';
-        }
+            if (isset($properties['path'])) {
+                $result .= '; path=' . $properties['path'];
+            }
 
-        if (isset($properties['httponly']) && $properties['httponly']) {
-            $result .= '; HttpOnly';
-        }
+            if (isset($properties['expires'])) {
+                if (is_string($properties['expires'])) {
+                    $timestamp = strtotime($properties['expires']);
+                } else {
+                    $timestamp = (int)$properties['expires'];
+                }
+                if ($timestamp !== 0) {
+                    $result .= '; expires=' . gmdate('D, d-M-Y H:i:s e', $timestamp);
+                }
+            }
 
-        return $res->withAddedHeader('Set-Cookie', $result);
-    });
+            if (isset($properties['secure']) && $properties['secure']) {
+                $result .= '; secure';
+            }
+
+            if (isset($properties['httponly']) && $properties['httponly']) {
+                $result .= '; HttpOnly';
+            }
+
+            return $res->withAddedHeader('Set-Cookie', $result);
+        }
+    };
 };
