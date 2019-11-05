@@ -1,9 +1,9 @@
-FROM alpine:3.8
+FROM alpine:3.10
 
 # install packages
 RUN apk add --no-cache curl php php-common php-curl php-phar php-mbstring \
 php-pcntl php-json php-opcache php-fpm php php-openssl php-dom php-xml \
-php-pdo_mysql openssl nginx runit
+php-pdo_mysql php-fileinfo php-simplexml openssl nginx runit
 
 # Install Composer
 RUN curl https://getcomposer.org/composer.phar > /usr/sbin/composer

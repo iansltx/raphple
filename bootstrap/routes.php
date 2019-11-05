@@ -1,6 +1,6 @@
 <?php
 
-use Slim\Http\Request;
+use Slim\Http\ServerRequest as Request;
 use Slim\Http\Response;
 
 return function(\Slim\App $app) {
