@@ -12,7 +12,7 @@
     "aura/sql":"^2.6.0",
     "slim/slim": "^4",
     "slim/http": "^0.8.0",
-    "illuminate/container": "^6.4",
+    "illuminate/container": "^6.4@dev",
     "slim/psr7": "^0.6.0"
   }
 }
