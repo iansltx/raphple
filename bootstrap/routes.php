@@ -66,7 +66,7 @@ return function(\Slim\App $app) {
         $rs = $this->get('raffleService');
 
         if (!$rs->raffleExists($id))
-            return $this->view->renderNotFound($res);
+            return $this->get('view')->renderNotFound($res);
 
         if ($req->getQueryParams()['show'] === 'entrants') {
             $output = ['is_complete' => $rs->isComplete($id)];
