@@ -1,4 +1,4 @@
-FROM php:7.3-cli-alpine
+FROM php:7.4-cli-alpine3.11
 
 # install php-uv and zip
 RUN apk add --no-cache git libuv-dev libzip-dev && \

@@ -3,15 +3,15 @@
 use Amp\Cluster\Cluster;
 use Amp\Http\Server\Server;
 use Amp\Http\Server\StaticContent\DocumentRoot;
+use Amp\Log\ConsoleFormatter;
+use Amp\Log\StreamHandler;
+use Amp\ByteStream;
+use Amp\Promise;
+use Monolog\Logger;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 Amp\Loop::run(function() {
-    $logHandler = new \Amp\Log\StreamHandler(new \Amp\ByteStream\ResourceOutputStream(\STDOUT));
-    $logHandler->setFormatter(new \Amp\Log\ConsoleFormatter());
-    $logger = new \Monolog\Logger('server');
-    $logger->pushHandler($logHandler);
-
     $router = new Amp\Http\Server\Router;
 
     call_user_func(require __DIR__ . '/../bootstrap/routes.php',
@@ -20,25 +20,27 @@ Amp\Loop::run(function() {
 
     $router->setFallback(new DocumentRoot(__DIR__));
 
-    $sockets = Cluster::isWorker() ? [yield Cluster::listen('0.0.0.0:' . ($_ENV['APP_PORT'] ?? 80))] : [
-        \Amp\Socket\listen('0.0.0.0:' . ($_ENV['APP_PORT'] ?? 80)),
-        \Amp\Socket\listen('[::]:' . ($_ENV['APP_PORT'] ?? 80))
+    $sockets = yield [
+        Cluster::listen("0.0.0.0:" . ($_ENV['APP_PORT'] ?? 80)),
+//        Cluster::listen("[::]:" . ($_ENV['APP_PORT'] ?? 80)),
     ];
+
+    // Creating a log handler in this way allows the script to be run in a cluster or standalone.
+    if (Cluster::isWorker()) {
+        $handler = Cluster::createLogHandler();
+    } else {
+        $handler = new StreamHandler(ByteStream\getStdout());
+        $handler->setFormatter(new ConsoleFormatter());
+    }
+
+    $logger = new Logger('worker-' . Cluster::getId());
+    $logger->pushHandler($handler);
 
     $server = new Server($sockets, $router, $logger);
 
     yield $server->start();
 
-    if (Cluster::isWorker()) {
-        Cluster::onTerminate(function () use ($server, $logger) {
-            $logger->info("Received termination request");
-            $server->stop();
-        });
-    } else {
-        // Stop the server when SIGINT is received (this is technically optional, but it is best to call Server::stop()).
-        Amp\Loop::onSignal(SIGINT, function (string $watcherId) use ($server) {
-            Amp\Loop::cancel($watcherId);
-            yield $server->stop();
-        });
-    }
+    Cluster::onTerminate(function () use ($server): Promise {
+        return $server->stop();
+    });
 });

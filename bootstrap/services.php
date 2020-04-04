@@ -321,6 +321,9 @@ return function (\Pimple\Container $container, $env) {
         if (isset($env['NEXMO_KEY'])) {
             return new NexmoSMS($env['NEXMO_KEY'], $env['NEXMO_SECRET'], $env['PHONE_NUMBER']);
         }
+        if (isset($env['SIGNALWIRE_SPACE'])) {
+            return new SignalWireSMS($env['SIGNALWIRE_SPACE'], $env['SIGNALWIRE_PROJECT'], $env['SIGNALWIRE_TOKEN'], $env['PHONE_NUMBER']);
+        }
         if (isset($env['DUMMY_SMS_WAIT_MS'])) {
             return new DummySMS($env['DUMMY_SMS_WAIT_MS']);
         }

@@ -1,15 +1,15 @@
 # Raphple
 
-A mobile phone based online raffle system using PHP, MySQL, AMPHP components, and Twilio or Nexmo. You can see a live
-implementation (using Twilio) as http://raphple.com.
+A mobile phone based online raffle system using PHP, MySQL, AMPHP components, and Twilio, Nexmo, or SignalWire. You can
+see a live implementation (using Twilio) as http://raphple.com.
 
 ## Setup (non-Docker)
 
 For higher performance, consider installing the `libevent`, `ev`, or `php-uv` extensions. The included Dockerfile
 uses `uv`.
 
-1. Set up an SMS provider account (Twilio or Nexmo) and point it to the appropriate webhook, or use a dummy account.
-See Setup (SMS) for more details.
+1. Set up an SMS provider account and point it to the appropriate webhook, or use a dummy account. See Setup (SMS) for
+more details.
 2. Download Composer and install dependencies.
 3. Import /db/schema.sql into a MySQL 5.6+ database.
 4. Set $_ENV vars for your SMS provider, as well as DB_HOST, DB_USER, DB_PASSWORD and DB_NAME vars to 
@@ -29,7 +29,7 @@ web container.
 
 ## Setup (SMS)
 
-Raphple supports Twilio and Nexmo directly (no need for SDKs or curl). To use either, set the
+Raphple supports Twilio, Nexmo, and SignalWire directly (no need for SDKs or curl). To use either, set the
 appropriate env vars for your provider, and point that provider's webhook endpoint at the proper URL. Phone number
 formats also vary between providers, but as long as you only use one at a time that doesn't matter.
 
@@ -46,6 +46,7 @@ delay actually happening.
 | --- | --- | --- |
 | Twilio | TWILIO_SID, TWILIO_TOKEN | /twilio |
 | Nexmo | NEXMO_KEY, NEXMO_SECRET | /nexmo |
+| SignalWire | SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT, SIGNALWIRE_TOKEN | /twilio (yes, response format is identical) |
 | Dummy | DUMMY_SMS_WAIT_MS | n/a |
 
 ## Contributing

@@ -2,6 +2,7 @@
   "name": "iansltx/raphple",
   "description": "PHP Raffler with Twilio + Nexmo",
   "license": "BSD-2-Clause",
+  "minimum-stability": "dev",
   "authors": [
     {
       "name": "Ian Littman",
@@ -9,15 +10,15 @@
     }
   ],
   "require": {
-    "php": "^7.2",
+    "php": "^7.4",
     "ext-pcntl": "*",
-    "amphp/http-server": "^1.0.1",
-    "amphp/http-server-static-content": "^1.0.3",
-    "amphp/http-server-router": "^1.0.1",
-    "amphp/mysql": "1.1.0",
-    "amphp/artax": "^3.0.14",
-    "amphp/http-server-form-parser": "^1.1.0",
-    "amphp/cluster": "dev-master@dev",
-    "pimple/pimple": "^3.2.3"
+    "pimple/pimple": "^3.2.3",
+    "amphp/http-server": "^2.0@dev",
+    "amphp/http-server-static-content": "dev-master",
+    "amphp/http-server-router": "dev-master",
+    "amphp/mysql": "dev-master",
+    "amphp/http-client": "^4.0@dev",
+    "amphp/http-server-form-parser": "dev-master",
+    "amphp/cluster": "dev-master"
   }
 }
