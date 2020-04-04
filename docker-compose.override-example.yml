@@ -9,4 +9,7 @@ services:
 #     - "TWILIO_TOKEN=a123b123"
 #     - "NEXMO_KEY=a1234b1234"
 #     - "NEXMO_SECRET=d34db33f"
+#     - "SIGNALWIRE_SPACE=example"
+#     - "SIGNALWIRE_PROJECT=a123-b123"
+#     - "SIGNALWIRE_TOKEN=a123b123"
 #     - "DUMMY_SMS_WAIT_MS=1337"

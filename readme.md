@@ -1,11 +1,11 @@
 # Raphple
 
-A mobile phone based online raffle system using PHP, MySQL, Slim Framework and Twilio or Nexmo. You can see a live
-implementation (using Twilio) as http://raphple.com.
+A mobile phone based online raffle system using PHP, MySQL, Slim Framework and Twilio, Nexmo, or SignalWire.
+You can see a live implementation (using Twilio) as http://raphple.com.
 
 ## Setup (non-Docker)
 
-1. Set up an SMS provider account (Twilio or Nexmo) and point it to the appropriate webhook, or use a dummy account.
+1. Set up an SMS provider account and point it to the appropriate webhook, or use a dummy account.
 See Setup (SMS) for more details.
 2. Download Composer and install dependencies.
 3. Set your document root to /public, with index.php as the default script.
@@ -26,9 +26,9 @@ built your container.
 
 ## Setup (SMS)
 
-Raphple now supports Twilio and Nexmo, and requires libraries for neither (doesn't require curl either). Just set the
-appropriate env vars for your provider, and point that provider's webhook endpoint at the proper URL. Phone number
-formats also vary between providers, but as long as you only use one at a time that doesn't matter.
+Raphple now supports Twilio, Nexmo, or SignalWire, and requires libraries for neither (doesn't require curl either).
+Just set the appropriate env vars for your provider, and point that provider's webhook endpoint at the proper URL. Phone
+number formats also vary between providers, but as long as you only use one at a time that doesn't matter.
 
 In addition to the below env vars, set `PHONE_NUMBER` to the number you'll use to receive (and send) raffle-related
 texts.
@@ -41,6 +41,7 @@ send event (you can set this to zero if you want). Messages that would have been
 | --- | --- | --- |
 | Twilio | TWILIO_SID, TWILIO_TOKEN | /twilio |
 | Nexmo | NEXMO_KEY, NEXMO_SECRET | /nexmo |
+| SignalWire | SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT, SIGNALWIRE_TOKEN | /twilio (yes, response format is identical) |
 | Dummy | DUMMY_SMS_WAIT_MS | n/a |
 
 ## Contributing

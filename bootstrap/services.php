@@ -150,6 +150,9 @@ return function(Container $container, $env) {
         if (isset($env['DUMMY_SMS_WAIT_MS'])) {
             return new DummySMS($env['DUMMY_SMS_WAIT_MS']);
         }
+        if (isset($env['SIGNALWIRE_SPACE'])) {
+            return new SignalWireSMS($env['SIGNALWIRE_SPACE'], $env['SIGNALWIRE_PROJECT'], $env['SIGNALWIRE_TOKEN'], $env['PHONE_NUMBER']);
+        }
         throw new InvalidArgumentException('Could not find SMS service creds, and a dummy timeout was not supplied.');
     };
 

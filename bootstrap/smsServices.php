@@ -62,6 +62,41 @@ class NexmoSMS implements SMS
     }
 }
 
+class SignalWireSMS implements SMS
+{
+    protected string $space;
+    protected string $projectId;
+    protected string $authToken;
+    protected string $fromNumber;
+
+    public function __construct(string $space, string $projectId, string $authToken, string $fromNumber)
+    {
+        $this->space = $space;
+        $this->projectId = $projectId;
+        $this->authToken = $authToken;
+        $this->fromNumber = $fromNumber;
+    }
+
+    public function send($to, $text)
+    {
+        file_get_contents('https://' . $this->space . '.signalwire.com/api/laml/2010-04-01/Accounts/' .
+                $this->projectId . '/Messages.json', false,
+            stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'header' => [
+                        'Content-type: application/x-www-form-urlencoded',
+                        'Authorization: Basic ' . base64_encode($this->projectId . ':' . $this->authToken)
+                    ],
+                    'content' => http_build_query([
+                        'To' => $to,
+                        'From' => $this->fromNumber,
+                        'Body' => $text
+                    ])
+                ]]));
+    }
+}
+
 class DummySMS implements SMS
 {
     protected $waitMs;
