@@ -1,6 +1,7 @@
 <?php
 
-use Slim\Http\Request;
+use Pimple\Container;
+use Slim\Http\ServerRequest as Request;
 use Slim\Http\Response;
 
 require __DIR__ . '/smsServices.php';
@@ -131,13 +132,13 @@ class Auth
     }
 }
 
-return function(\Slim\Container $container, $env) {
+return function(Container $container, $env) {
     $container['view'] = function() {return new View(__DIR__ . '/../templates');};
     $container['raffleService'] = function($c) use ($env) {return new RaffleService(
         new \Aura\Sql\ExtendedPdo('mysql:host=' . $env['DB_HOST'] . ';dbname=' . $env['DB_NAME'],
             $env['DB_USER'], $env['DB_PASSWORD']), $c['sms'], $env['PHONE_NUMBER']
     );};
-    $container['auth'] = function(\Slim\Container $c) {return new Auth($c->get('raffleService'));};
+    $container['auth'] = function($c) {return new Auth($c['raffleService']);};
 
     $container['sms'] = function() use ($env) {
         if (isset($env['TWILIO_SID'])) {

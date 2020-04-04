@@ -1,6 +1,6 @@
 <?php
 
-use Slim\Http\Request;
+use Slim\Http\ServerRequest as Request;
 use Slim\Http\Response;
 
 return function(\Slim\App $app) {
@@ -8,7 +8,7 @@ return function(\Slim\App $app) {
 
     $app->post('/twilio', function (Request $req, Response $res) {
         /** @var RaffleService $rs */
-        $rs = $this->raffleService;
+        $rs = $this->get('raffleService');
         $body = $req->getParsedBody();
 
         if ($rs->recordEntry($body['Body'], $body['From']))
@@ -21,12 +21,12 @@ return function(\Slim\App $app) {
 
     $app->get('/nexmo', functioN(Request $req, Response $res) {
         /** @var RaffleService $rs */
-        $rs = $this->raffleService;
+        $rs = $this->get('raffleService');
         $qs = $req->getQueryParams();
         $code = $qs['text'];
 
         if ($code && $rs->recordEntry($code, $qs['msisdn'])) {
-            $this->sms->send($qs['msisdn'], 'Your entry into ' . $rs->getNameByCode($code) . ' has been received!');
+            $this->get('sms')->send($qs['msisdn'], 'Your entry into ' . $rs->getNameByCode($code) . ' has been received!');
         }
         return $res->withStatus(200, "OK")->write('Message received.');
     });
@@ -34,7 +34,7 @@ return function(\Slim\App $app) {
     // end of webhooks
 
     $app->get('/', function (Request $req, Response $res) {
-        return $this->view->render($res, 'home.php');
+        return $this->get('view')->render($res, 'home.php');
     });
 
     $app->post('/', function (Request $req, Response $res) {
@@ -51,19 +51,19 @@ return function(\Slim\App $app) {
             $errors['raffle_items'] = true;
 
         if (count($errors))
-            return $this->view->render($res, 'home.php',
+            return $this->get('view')->render($res, 'home.php',
                 ['raffleItems' => $items, 'raffleName' => $name, 'errors' => $errors]);
 
-        $id = $this->raffleService->create($name, explode("\n", trim($items)));
+        $id = $this->get('raffleService')->create($name, explode("\n", trim($items)));
 
-        return $this->addCookieToResponse
-            ->__invoke($res, 'sid' . $id, $this->raffleService->getSid($id))->withRedirect('/' . $id);
+        return $this->get('addCookieToResponse')
+            ->__invoke($res, 'sid' . $id, $this->get('raffleService')->getSid($id))->withRedirect('/' . $id);
     });
 
     $app->get('/{id}', function (Request $req, Response $res, array $args) {
         $id = $args['id'];
         /** @var RaffleService $rs */
-        $rs = $this->raffleService;
+        $rs = $this->get('raffleService');
 
         if (!$rs->raffleExists($id))
             return $this->view->renderNotFound($res);
@@ -74,7 +74,7 @@ return function(\Slim\App $app) {
             $numbers = $rs->getEntrantPhoneNumbers($id);
             $output['count'] = count($numbers);
 
-            if ($this->auth->isAuthorized($req, $id))
+            if ($this->get('auth')->isAuthorized($req, $id))
                 $output['numbers'] = array_map(function ($number) {
                     if (strlen($number) != 10 && substr($number, 0, 2) != '+1') {
                         return substr($number, 0, 3) . '...' . substr($number, -4);
@@ -87,12 +87,12 @@ return function(\Slim\App $app) {
         }
 
         if ($rs->isComplete($id))
-            return $this->view->render($res, 'finished.php', ['raffleName' => $rs->getName($id)]);
+            return $this->get('view')->render($res, 'finished.php', ['raffleName' => $rs->getName($id)]);
 
-        return $this->view->render($res, 'waiting.php', [
+        return $this->get('view')->render($res, 'waiting.php', [
             'phoneNumber' => $rs->getPhoneNumber($id),
             'code' => $rs->getCode($id),
-            'entrantNumbers' => $this->auth->isAuthorized($req, $id) ? $rs->getEntrantPhoneNumbers($id) : null,
+            'entrantNumbers' => $this->get('auth')->isAuthorized($req, $id) ? $rs->getEntrantPhoneNumbers($id) : null,
             'entrantCount' => $rs->getEntrantCount($id)
         ]);
     });
@@ -100,12 +100,12 @@ return function(\Slim\App $app) {
     $app->post('/{id}', function (Request $req, Response $res, array $args) {
         $id = $args['id'];
         /** @var RaffleService $rs */
-        $rs = $this->raffleService;
+        $rs = $this->get('raffleService');
 
         if (!$rs->raffleExists($id))
-            return $this->view->renderNotFound($res);
+            return $this->get('view')->renderNotFound($res);
 
-        if (!$this->auth->isAuthorized($req, $id))
+        if (!$this->get('auth')->isAuthorized($req, $id))
             return $res->withRedirect('/');
 
         $data = ['raffleName' => $rs->getName($id)];
@@ -113,6 +113,6 @@ return function(\Slim\App $app) {
         if (!$rs->isComplete($id))
             $data['winnerNumbers'] = $rs->complete($id);
 
-        return $this->view->render($res, 'finished.php', $data);
+        return $this->get('view')->render($res, 'finished.php', $data);
     });
 };
